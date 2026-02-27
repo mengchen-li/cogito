@@ -395,26 +395,26 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
           <button onClick={()=>setShowSettings(true)} style={{width:32,height:32,borderRadius:8,background:keySaved?"#00ff8808":"#ff6b6b08",border:keySaved?"1px solid #00ff8820":"1px solid #ff6b6b20",color:keySaved?"#00ff88":"#ff6b6b",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}} title="API Key Settings">{"\u2699"}</button>
         </div>
         <h1 style={{fontSize:28,fontWeight:700,lineHeight:1.3,letterSpacing:"-0.03em",marginBottom:8}}>Python Fundamentals</h1>
-        <p style={{fontSize:14,color:"#666",lineHeight:1.7,maxWidth:540}}>A learning environment designed around how your brain actually learns.</p>
+        <p style={{fontSize:14,color:"#999",lineHeight:1.7,maxWidth:540}}>A learning environment designed around how your brain actually learns.</p>
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginTop:22,marginBottom:36}}>
           {[{i:"\u{1F52E}",l:"Predict first",d:"Activate intuitions before seeing answers"},{i:"\u{1F9E9}",l:"Explore & fail",d:"Productive struggle builds understanding"},{i:"\u{1F3A8}",l:"Choose your lens",d:"Multiple representations for different minds"},{i:"\u{1F4AD}",l:"Reflect & grow",d:"Metacognition turns experience into knowledge"}].map((p,i)=>(
             <div key={i} style={{padding:"12px 14px",borderRadius:10,background:"#0d0d16",border:"1px solid #181824"}}>
-              <div style={{fontSize:18,marginBottom:5}}>{p.i}</div><div style={{fontSize:12,fontWeight:600,marginBottom:2}}>{p.l}</div><div style={{fontSize:10.5,color:"#555",lineHeight:1.5}}>{p.d}</div>
+              <div style={{fontSize:18,marginBottom:5}}>{p.i}</div><div style={{fontSize:12,fontWeight:600,marginBottom:2,color:"#ccc"}}>{p.l}</div><div style={{fontSize:10.5,color:"#888",lineHeight:1.5}}>{p.d}</div>
             </div>))}
         </div>
         <h2 style={{fontSize:16,fontWeight:700,marginBottom:14}}>Course Curriculum</h2>
         {CURRIC.map((m,mi)=>(
           <div key={mi} style={{marginBottom:22}}>
-            <div style={{display:"flex",gap:8,alignItems:"baseline",marginBottom:8}}><span style={{fontSize:13,fontWeight:700}}>{m.mod}</span><span style={{fontSize:11,color:"#444"}}>{m.wk}</span></div>
+            <div style={{display:"flex",gap:8,alignItems:"baseline",marginBottom:8}}><span style={{fontSize:13,fontWeight:700}}>{m.mod}</span><span style={{fontSize:11,color:"#777"}}>{m.wk}</span></div>
             {m.ls.map((l,li)=>{const cur=l.s==="cur",dn=l.s==="done",lk=l.s==="lock";return(
               <button key={li} onClick={()=>cur&&setView("lesson")} style={{display:"flex",alignItems:"center",gap:12,width:"100%",padding:"11px 14px",borderRadius:9,marginBottom:4,textAlign:"left",background:cur?"#00ff8805":"#0b0b12",border:cur?"1.5px solid #00ff8830":"1px solid #131320",cursor:cur?"pointer":"default",opacity:lk?0.3:1,animation:cur?"glow 3s ease-in-out infinite":"none"}}>
                 <div style={{width:28,height:28,borderRadius:7,flexShrink:0,background:dn?"#00ff8812":"#0d0d16",border:dn?"1.5px solid #00ff8840":cur?"1.5px solid #00ff8830":"1px solid #1a1a2a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:dn||cur?"#00ff88":"#333"}}>{dn?"\u2713":lk?"\u{1F512}":"\u2192"}</div>
-                <div style={{flex:1}}><div style={{fontSize:13,fontWeight:cur?600:500,color:cur?"#e0e0ea":dn?"#888":"#555"}}>{l.t}{cur&&<span style={{marginLeft:8,fontSize:9,padding:"2px 7px",borderRadius:20,background:"#00ff8815",color:"#00ff88",fontWeight:700}}>CURRENT</span>}</div><div style={{fontSize:11,color:"#444",marginTop:1}}>{l.d}</div></div>
+                <div style={{flex:1}}><div style={{fontSize:13,fontWeight:cur?600:500,color:cur?"#e8e8f0":dn?"#a0a0a8":"#777"}}>{l.t}{cur&&<span style={{marginLeft:8,fontSize:9,padding:"2px 7px",borderRadius:20,background:"#00ff8815",color:"#00ff88",fontWeight:700}}>CURRENT</span>}</div><div style={{fontSize:11,color:cur?"#888":dn?"#666":"#555",marginTop:1}}>{l.d}</div></div>
               </button>);})}
           </div>))}
         <div style={{marginTop:16,padding:"14px 16px",borderRadius:10,background:"#0d0d16",border:"1px solid #181824"}}>
           <div style={{fontSize:12,fontWeight:600,marginBottom:6}}>Design Philosophy</div>
-          <div style={{fontSize:11.5,color:"#555",lineHeight:1.8}}>Each lesson follows <strong style={{color:"#999"}}>Predict {"\u2192"} Explore {"\u2192"} Represent {"\u2192"} Reflect</strong>, grounded in Productive Failure (Kapur, 2012), Multiple Representations (Ainsworth, 2006), Conceptual Change (diSessa, 2022), Self-Regulated Learning (J{"\u00E4"}rvel{"\u00E4"} et al., 2018).</div>
+          <div style={{fontSize:11.5,color:"#888",lineHeight:1.8}}>Each lesson follows <strong style={{color:"#bbb"}}>Predict {"\u2192"} Explore {"\u2192"} Represent {"\u2192"} Reflect</strong>, grounded in Productive Failure (Kapur, 2012), Multiple Representations (Ainsworth, 2006), Conceptual Change (diSessa, 2022), Self-Regulated Learning (J{"\u00E4"}rvel{"\u00E4"} et al., 2018).</div>
         </div>
       </div>
     </div>
@@ -441,7 +441,7 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
         {/* PREDICT */}
         {step===0&&<div className="fade-up" key="s0">
           <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>What do you think this code will do?</h2>
-          <p style={{fontSize:13,color:"#666",lineHeight:1.7,marginBottom:18}}>Use your gut feeling. Wrong predictions are <em>better</em> for learning.</p>
+          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:18}}>Use your gut feeling. Wrong predictions are <em>better</em> for learning.</p>
           <CodeEl code={'fruits = ["apple", "banana", "cherry"]\nfor fruit in fruits:\n    print(fruit)'} accent="#00ff88"/>
           <div style={{marginTop:20}}>
             {!subm?<>
@@ -460,7 +460,7 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
                 <div className="fade-up" style={{marginTop:14,borderRadius:11,padding:"16px 18px",background:fb.ok?"#00ff8806":"#ffbf0006",border:fb.ok?"1px solid #00ff8820":"1px solid #ffbf0020"}}>
                   <div style={{fontSize:14,fontWeight:700,marginBottom:6,color:fb.ok?"#00ff88":"#ffbf00"}}>{fb.ok?"\u2728 ":"\u{1F914} "}{fb.ti}</div>
                   <div style={{fontSize:13,color:"#999",lineHeight:1.8}}>{fb.bd}</div>
-                  {!fb.ok&&<div style={{marginTop:10,padding:"8px 12px",borderRadius:7,background:"#ffffff03",fontSize:11.5,color:"#555",lineHeight:1.6,fontStyle:"italic"}}>Research: wrong predictions lead to better retention (Kapur & Bielaczyc, 2012).</div>}
+                  {!fb.ok&&<div style={{marginTop:10,padding:"8px 12px",borderRadius:7,background:"#ffffff03",fontSize:11.5,color:"#888",lineHeight:1.6,fontStyle:"italic"}}>Research: wrong predictions lead to better retention (Kapur & Bielaczyc, 2012).</div>}
                   <Btn onClick={()=>go(1)} bg="linear-gradient(135deg,#ffbf00,#ff9500)" sx={{marginTop:14}}>Continue {"\u2192"}</Btn>
                 </div>);})()}
               {showFb&&useCust&&<div className="fade-up" style={{marginTop:14}}>
@@ -477,7 +477,7 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
         {/* STRUGGLE */}
         {step===1&&<div className="fade-up" key="s1">
           <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>Explore: What happens when you change the code?</h2>
-          <p style={{fontSize:13,color:"#666",lineHeight:1.7,marginBottom:16}}>Try variations. Predict before running.</p>
+          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:16}}>Try variations. Predict before running.</p>
           <div style={{display:"flex",gap:5,marginBottom:12,flexWrap:"wrap"}}>
             {VARS.map((v,i)=><button key={v.k} onClick={()=>{setVari(i);setSO([]);setSR(false);}} style={{padding:"6px 13px",borderRadius:7,border:"none",background:vari===i?"#ffbf000A":"#0b0b14",border:vari===i?"1.5px solid #ffbf0038":"1.5px solid #1a1a2a",color:vari===i?"#ffbf00":"#555",fontSize:12.5,fontWeight:vari===i?600:400,cursor:"pointer"}}>{v.l}</button>)}
           </div>
@@ -494,7 +494,7 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
         {/* REPRESENT */}
         {step===2&&<div className="fade-up" key="s2">
           <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>Choose how you want to understand this</h2>
-          <p style={{fontSize:13,color:"#666",lineHeight:1.7,marginBottom:16}}>Pick what clicks for <em>you</em>, or try them all.</p>
+          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:16}}>Pick what clicks for <em>you</em>, or try them all.</p>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:20}}>
             {[
               {k:"annotated",i:"\u{1F4DD}",t:"Line-by-Line",d:"Step-by-step code breakdown"},
@@ -529,7 +529,7 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
           {/* TRACE TABLE */}
           {selR==="trace"&&<div className="fade-up" style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #63b3ff18",marginBottom:16}}>
             <div style={{fontSize:12,fontWeight:600,color:"#63b3ff",marginBottom:14}}>{"\u{1F4CA}"} Variable Trace Table</div>
-            <p style={{fontSize:12,color:"#555",marginBottom:14,lineHeight:1.6}}>Track how each variable changes at every step of execution.</p>
+            <p style={{fontSize:12,color:"#888",marginBottom:14,lineHeight:1.6}}>Track how each variable changes at every step of execution.</p>
             <TraceTable step={anS}/>
             <div style={{display:"flex",gap:8,marginTop:14,alignItems:"center"}}>
               <button onClick={()=>anP?anPlay():setAnP(true)} style={{padding:"5px 12px",borderRadius:6,background:"#63b3ff0D",border:"1px solid #63b3ff20",color:"#63b3ff",fontSize:11,cursor:"pointer"}}>{anP?"\u25B6 Play":"\u23F8 Pause"}</button>
@@ -585,7 +585,7 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
           {/* ★ IMPROVED MIND MAP */}
           {selR==="mindmap"&&<div className="fade-up" style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #63b3ff18",marginBottom:16}}>
             <div style={{fontSize:12,fontWeight:600,color:"#63b3ff",marginBottom:6}}>{"\u{1F578}"} Concept Map</div>
-            <p style={{fontSize:11.5,color:"#555",marginBottom:14,lineHeight:1.5}}>Read top to bottom: the syntax at the top breaks down into three core concepts, each with deeper details below.</p>
+            <p style={{fontSize:11.5,color:"#888",marginBottom:14,lineHeight:1.5}}>Read top to bottom: the syntax at the top breaks down into three core concepts, each with deeper details below.</p>
             <MindMap/>
           </div>}
 
@@ -619,7 +619,7 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
         {/* REFLECT */}
         {step===3&&<div className="fade-up" key="s3">
           <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>Reflect: What just happened in your head?</h2>
-          <p style={{fontSize:13,color:"#666",lineHeight:1.7,marginBottom:18}}>Writing in your own words activates the <strong style={{color:"#999"}}>self-explanation effect</strong> (Chi et al., 1989). Then AI gives you personalized feedback.</p>
+          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:18}}>Writing in your own words activates the <strong style={{color:"#999"}}>self-explanation effect</strong> (Chi et al., 1989). Then AI gives you personalized feedback.</p>
           <div style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #a78bfa18",marginBottom:16}}>
             <div style={{marginBottom:18}}>
               <div style={{fontSize:12,fontWeight:600,color:"#a78bfa",marginBottom:6}}>1. Prediction vs. Reality</div>
