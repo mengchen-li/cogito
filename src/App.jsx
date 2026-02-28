@@ -27,7 +27,7 @@ async function askAI(sys, msgs) {
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
       if (r.status === 401) return "Invalid API key. Please check your key in settings (gear icon).";
-      return \`API error: \${err.error?.message || r.statusText}\`;
+      return `API error: ${err.error?.message || r.statusText}`;
     }
     const d = await r.json();
     return d.content?.[0]?.text || "Couldn't generate a response.";
