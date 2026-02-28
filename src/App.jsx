@@ -4,10 +4,10 @@ const API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
 
 function getApiKey() {
-  try { return localStorage.getItem("learnflow_api_key") || ""; } catch { return ""; }
+  try { return localStorage.getItem("cogito_api_key") || ""; } catch { return ""; }
 }
 function setApiKey(k) {
-  try { localStorage.setItem("learnflow_api_key", k); } catch {}
+  try { localStorage.setItem("cogito_api_key", k); } catch {}
 }
 
 async function askAI(sys, msgs) {
@@ -27,7 +27,7 @@ async function askAI(sys, msgs) {
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
       if (r.status === 401) return "Invalid API key. Please check your key in settings (gear icon).";
-      return `API error: ${err.error?.message || r.statusText}`;
+      return \`API error: \${err.error?.message || r.statusText}\`;
     }
     const d = await r.json();
     return d.content?.[0]?.text || "Couldn't generate a response.";
@@ -97,10 +97,10 @@ function CodeEl({code,accent="#00ff88"}){
     <div style={{background:"#0d1117",borderRadius:12,overflow:"hidden",border:`1px solid ${accent}20`}}>
       <div style={{padding:"8px 14px",borderBottom:"1px solid #1a1f2e",display:"flex",alignItems:"center",gap:7}}>
         {["#ff5f57","#febc2e","#28c840"].map((c,i)=><span key={i} style={{width:10,height:10,borderRadius:"50%",background:c,display:"inline-block"}}/>)}
-        <span style={{fontSize:11,color:"#444",marginLeft:6,fontFamily:"'JetBrains Mono',monospace"}}>lesson.py</span>
+        <span style={{fontSize:11,color:"#888",marginLeft:6,fontFamily:"'JetBrains Mono',monospace"}}>lesson.py</span>
       </div>
       <pre style={{padding:"16px 18px",margin:0,fontFamily:"'JetBrains Mono',monospace",fontSize:13,lineHeight:2,color:"#d4d4d4",overflowX:"auto"}}>
-        {code.split("\n").map((l,i)=><div key={i}><span style={{color:"#3a3a4a",marginRight:14,userSelect:"none",display:"inline-block",width:18,textAlign:"right"}}>{i+1}</span>{hl(l)}</div>)}
+        {code.split("\n").map((l,i)=><div key={i}><span style={{color:"#667",marginRight:14,userSelect:"none",display:"inline-block",width:18,textAlign:"right"}}>{i+1}</span>{hl(l)}</div>)}
       </pre>
     </div>
   );
@@ -108,11 +108,11 @@ function CodeEl({code,accent="#00ff88"}){
 
 function OutEl({lines,running,color="#00ff88"}){return(
   <div style={{background:"#0a0a0f",borderRadius:10,padding:"12px 16px",border:"1px solid #1a1a2a",minHeight:46}}>
-    <div style={{fontSize:10,color:"#444",marginBottom:5,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:"'JetBrains Mono',monospace"}}>output</div>
+    <div style={{fontSize:10,color:"#888",marginBottom:5,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:"'JetBrains Mono',monospace"}}>output</div>
     <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:13,lineHeight:1.9}}>
       {lines.map((l,i)=><div key={i} style={{color,animation:"slideIn .25s ease-out"}}>{l}</div>)}
       {running&&<span style={{color,animation:"blink 1s step-end infinite"}}>{"\u2588"}</span>}
-      {!running&&lines.length===0&&<span style={{color:"#2a2a35",fontStyle:"italic"}}>Waiting...</span>}
+      {!running&&lines.length===0&&<span style={{color:"#667",fontStyle:"italic"}}>Waiting...</span>}
     </div>
   </div>
 );}
@@ -284,21 +284,21 @@ function FloatingAI({variant}){
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:13,color:"#3b82f6",fontWeight:700}}>{face}</span>
           <div>
-            <div style={{fontSize:13,fontWeight:600,color:"#8899b0"}}>AI Tutor</div>
-            <div style={{fontSize:10,color:"#334"}}>Ask anything about the code</div>
+            <div style={{fontSize:13,fontWeight:600,color:"#b0c8e0"}}>AI Tutor</div>
+            <div style={{fontSize:10,color:"#889"}}>Ask anything about the code</div>
           </div>
         </div>
-        <button onClick={()=>setOpen(false)} style={{background:"#ffffff06",border:"1px solid #1a2535",borderRadius:8,color:"#445",cursor:"pointer",fontSize:16,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center"}}>{"\u00D7"}</button>
+        <button onClick={()=>setOpen(false)} style={{background:"#ffffff06",border:"1px solid #1a2535",borderRadius:8,color:"#99a",cursor:"pointer",fontSize:16,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center"}}>{"\u00D7"}</button>
       </div>
       <div ref={scrollRef} style={{flex:1,overflowY:"auto",padding:"14px",display:"flex",flexDirection:"column",gap:10}}>
-        {msgs.length===0&&<div style={{fontSize:12,color:"#2a3545",textAlign:"center",marginTop:50,lineHeight:2}}>
+        {msgs.length===0&&<div style={{fontSize:12,color:"#b0c0d0",textAlign:"center",marginTop:50,lineHeight:2}}>
           <span style={{fontSize:28,display:"block",marginBottom:8}}>{"{ \u00B0 _ \u00B0 }"}</span>
-          Hi! Ask me about the code.<br/><span style={{color:"#3a4a5a"}}>e.g. "What does enumerate do?"</span>
+          Hi! Ask me about the code.<br/><span style={{color:"#99aabb"}}>e.g. "What does enumerate do?"</span>
         </div>}
         {msgs.map((m,i)=>(
           <div key={i} style={{alignSelf:m.role==="user"?"flex-end":"flex-start",maxWidth:"85%",padding:"10px 14px",borderRadius:m.role==="user"?"14px 14px 4px 14px":"14px 14px 14px 4px",background:m.role==="user"?"#1a3050":"#111828",border:m.role==="user"?"1px solid #1a4070":"1px solid #1a2535",fontSize:12.5,color:m.role==="user"?"#b0c8e8":"#8899b0",lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.content}</div>
         ))}
-        {loading&&<div style={{alignSelf:"flex-start",padding:"10px 14px",borderRadius:"14px 14px 14px 4px",background:"#111828",border:"1px solid #1a2535",fontSize:12.5,color:"#445"}}>
+        {loading&&<div style={{alignSelf:"flex-start",padding:"10px 14px",borderRadius:"14px 14px 14px 4px",background:"#111828",border:"1px solid #1a2535",fontSize:12.5,color:"#99a"}}>
           <span style={{fontFamily:"'JetBrains Mono',monospace"}}>{thinkFace}</span> thinking<span style={{animation:"blink 1s step-end infinite"}}>...</span>
         </div>}
       </div>
@@ -338,7 +338,6 @@ export default function App(){
   const[done,setDone]=useState(false);
   const[reflFb,setReflFb]=useState("");
   const[reflLd,setReflLd]=useState(false);
-  // API key settings
   const[showSettings,setShowSettings]=useState(false);
   const[keyInput,setKeyInput]=useState(getApiKey());
   const[keySaved,setKeySaved]=useState(!!getApiKey());
@@ -371,35 +370,43 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
   if(view==="home")return(
     <div style={{fontFamily:"'DM Sans',sans-serif",minHeight:"100vh",background:"#08080f",color:"#e0e0ea"}}>
       <style>{CSS}</style>
-      {/* Settings Panel */}
+      
       {showSettings&&<div style={{position:"fixed",inset:0,zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.6)"}}>
         <div style={{background:"#0d0d16",borderRadius:16,padding:"28px",width:380,border:"1px solid #1a1a2a",boxShadow:"0 8px 40px rgba(0,0,0,0.5)"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <div style={{fontSize:15,fontWeight:700}}>{"\u2699\uFE0F"} Settings</div>
-            <button onClick={()=>setShowSettings(false)} style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:18}}>{"\u00D7"}</button>
+            <div style={{fontSize:15,fontWeight:700}}>{"⚙️"} Settings</div>
+            <button onClick={()=>setShowSettings(false)} style={{background:"none",border:"none",color:"#888",cursor:"pointer",fontSize:18}}>{"×"}</button>
           </div>
-          <div style={{fontSize:12,color:"#666",marginBottom:8,lineHeight:1.6}}>Enter your Claude API key to enable AI features. Your key is stored locally in your browser only.</div>
+          <div style={{fontSize:12,color:"#999",marginBottom:8,lineHeight:1.6}}>Enter your Claude API key to enable AI features. Your key is stored locally in your browser only.</div>
           <input value={keyInput} onChange={e=>setKeyInput(e.target.value)} type="password"
             placeholder="sk-ant-api03-..." style={{width:"100%",padding:"10px 12px",borderRadius:8,background:"#08080f",border:"1px solid #1a1a2a",color:"#e0e0ea",fontSize:13,fontFamily:"'JetBrains Mono',monospace",marginBottom:12}}/>
           <div style={{display:"flex",gap:8}}>
             <button onClick={()=>{setApiKey(keyInput);setKeySaved(true);setShowSettings(false);}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#00ff88,#00cc88)",color:"#08080f",fontWeight:700,fontSize:13,cursor:"pointer"}}>Save Key</button>
             {keySaved&&<button onClick={()=>{setApiKey("");setKeyInput("");setKeySaved(false);}} style={{padding:"10px 16px",borderRadius:8,border:"1px solid #ff6b6b30",background:"#ff6b6b08",color:"#ff6b6b",fontSize:12,cursor:"pointer"}}>Clear</button>}
           </div>
-          {keySaved&&<div style={{marginTop:10,fontSize:11,color:"#00ff88"}}>{"\u2713"} API key saved</div>}
+          {keySaved&&<div style={{marginTop:10,fontSize:11,color:"#00ff88"}}>{"✓"} API key saved</div>}
         </div>
       </div>}
       <div style={{padding:"44px 24px 36px",maxWidth:720,margin:"0 auto"}}>
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:28}}>
-          <div style={{width:42,height:42,borderRadius:11,background:"linear-gradient(135deg,#00ff88,#00bbff)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:21,fontWeight:800,color:"#08080f"}}>{"\u03BB"}</div>
-          <div style={{flex:1}}><div style={{fontSize:21,fontWeight:700,letterSpacing:"-0.03em"}}>LearnFlow</div><div style={{fontSize:11,color:"#555"}}>Struggle First, AI Second</div></div>
-          <button onClick={()=>setShowSettings(true)} style={{width:32,height:32,borderRadius:8,background:keySaved?"#00ff8808":"#ff6b6b08",border:keySaved?"1px solid #00ff8820":"1px solid #ff6b6b20",color:keySaved?"#00ff88":"#ff6b6b",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}} title="API Key Settings">{"\u2699"}</button>
+          <div style={{display:"flex",alignItems:"center",gap:0}}>
+            <svg width="48" height="48" viewBox="0 0 64 64" fill="none" style={{marginRight:-2}}>
+              <defs><linearGradient id="lgMain" x1="0" y1="0" x2="64" y2="64"><stop offset="0%" stopColor="#00ff88"/><stop offset="100%" stopColor="#00bbff"/></linearGradient></defs>
+              <circle cx="28" cy="28" r="18" stroke="url(#lgMain)" strokeWidth="5" fill="none" strokeDasharray="85 28" strokeDashoffset="-8" strokeLinecap="round"/>
+              <circle cx="49" cy="20" r="7" stroke="url(#lgMain)" strokeWidth="3.5" fill="none" opacity="0.8"/>
+              <circle cx="44" cy="14" r="2" fill="url(#lgMain)" opacity="0.4"/>
+            </svg>
+            <span style={{fontSize:28,fontWeight:700,letterSpacing:"-0.03em",color:"#e0e0ea"}}>gito</span>
+          </div>
+          <div style={{fontSize:11,color:"#999",marginLeft:6}}>I think, therefore I learn</div>
+          <button onClick={()=>setShowSettings(true)} style={{width:32,height:32,borderRadius:8,background:keySaved?"#00ff8808":"#ff6b6b08",border:keySaved?"1px solid #00ff8820":"1px solid #ff6b6b20",color:keySaved?"#00ff88":"#ff6b6b",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}} title="API Key Settings">{"⚙"}</button>
         </div>
         <h1 style={{fontSize:28,fontWeight:700,lineHeight:1.3,letterSpacing:"-0.03em",marginBottom:8}}>Python Fundamentals</h1>
-        <p style={{fontSize:14,color:"#999",lineHeight:1.7,maxWidth:540}}>A learning environment designed around how your brain actually learns.</p>
+        <p style={{fontSize:14,color:"#999",lineHeight:1.7,maxWidth:540}}>An interactive learning environment grounded in Learning Sciences research.</p>
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginTop:22,marginBottom:36}}>
-          {[{i:"\u{1F52E}",l:"Predict first",d:"Activate intuitions before seeing answers"},{i:"\u{1F9E9}",l:"Explore & fail",d:"Productive struggle builds understanding"},{i:"\u{1F3A8}",l:"Choose your lens",d:"Multiple representations for different minds"},{i:"\u{1F4AD}",l:"Reflect & grow",d:"Metacognition turns experience into knowledge"}].map((p,i)=>(
+          {[{i:"\u{1F52E}",l:"Predict first",d:"Your existing intuitions are the starting point for learning"},{i:"\u{1F9E9}",l:"Explore freely",d:"Hands-on experimentation builds flexible understanding"},{i:"\u{1F3A8}",l:"Choose your lens",d:"Multiple representations support diverse thinking styles"},{i:"\u{1F4AD}",l:"Reflect and grow",d:"Self-explanation consolidates understanding"}].map((p,i)=>(
             <div key={i} style={{padding:"12px 14px",borderRadius:10,background:"#0d0d16",border:"1px solid #181824"}}>
-              <div style={{fontSize:18,marginBottom:5}}>{p.i}</div><div style={{fontSize:12,fontWeight:600,marginBottom:2,color:"#ccc"}}>{p.l}</div><div style={{fontSize:10.5,color:"#888",lineHeight:1.5}}>{p.d}</div>
+              <div style={{fontSize:18,marginBottom:5}}>{p.i}</div><div style={{fontSize:12,fontWeight:600,marginBottom:2,color:"#ccc"}}>{p.l}</div><div style={{fontSize:10.5,color:"#777",lineHeight:1.5}}>{p.d}</div>
             </div>))}
         </div>
         <h2 style={{fontSize:16,fontWeight:700,marginBottom:14}}>Course Curriculum</h2>
@@ -407,14 +414,14 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
           <div key={mi} style={{marginBottom:22}}>
             <div style={{display:"flex",gap:8,alignItems:"baseline",marginBottom:8}}><span style={{fontSize:13,fontWeight:700}}>{m.mod}</span><span style={{fontSize:11,color:"#777"}}>{m.wk}</span></div>
             {m.ls.map((l,li)=>{const cur=l.s==="cur",dn=l.s==="done",lk=l.s==="lock";return(
-              <button key={li} onClick={()=>cur&&setView("lesson")} style={{display:"flex",alignItems:"center",gap:12,width:"100%",padding:"11px 14px",borderRadius:9,marginBottom:4,textAlign:"left",background:cur?"#00ff8805":"#0b0b12",border:cur?"1.5px solid #00ff8830":"1px solid #131320",cursor:cur?"pointer":"default",opacity:lk?0.3:1,animation:cur?"glow 3s ease-in-out infinite":"none"}}>
-                <div style={{width:28,height:28,borderRadius:7,flexShrink:0,background:dn?"#00ff8812":"#0d0d16",border:dn?"1.5px solid #00ff8840":cur?"1.5px solid #00ff8830":"1px solid #1a1a2a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:dn||cur?"#00ff88":"#333"}}>{dn?"\u2713":lk?"\u{1F512}":"\u2192"}</div>
+              <button key={li} onClick={()=>cur&&setView("lesson")} style={{display:"flex",alignItems:"center",gap:12,width:"100%",padding:"11px 14px",borderRadius:9,marginBottom:4,textAlign:"left",background:cur?"#00ff8808":"#0d0d16",border:cur?"1.5px solid #00ff8835":"1px solid #181824",cursor:cur?"pointer":"default",opacity:lk?0.35:1,animation:cur?"glow 3s ease-in-out infinite":"none"}}>
+                <div style={{width:28,height:28,borderRadius:7,flexShrink:0,background:dn?"#00ff8812":"#0d0d16",border:dn?"1.5px solid #00ff8840":cur?"1.5px solid #00ff8830":"1px solid #1a1a2a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:dn||cur?"#00ff88":"#444"}}>{dn?"\u2713":lk?"\u{1F512}":"\u2192"}</div>
                 <div style={{flex:1}}><div style={{fontSize:13,fontWeight:cur?600:500,color:cur?"#e8e8f0":dn?"#a0a0a8":"#777"}}>{l.t}{cur&&<span style={{marginLeft:8,fontSize:9,padding:"2px 7px",borderRadius:20,background:"#00ff8815",color:"#00ff88",fontWeight:700}}>CURRENT</span>}</div><div style={{fontSize:11,color:cur?"#888":dn?"#666":"#555",marginTop:1}}>{l.d}</div></div>
               </button>);})}
           </div>))}
         <div style={{marginTop:16,padding:"14px 16px",borderRadius:10,background:"#0d0d16",border:"1px solid #181824"}}>
           <div style={{fontSize:12,fontWeight:600,marginBottom:6}}>Design Philosophy</div>
-          <div style={{fontSize:11.5,color:"#888",lineHeight:1.8}}>Each lesson follows <strong style={{color:"#bbb"}}>Predict {"\u2192"} Explore {"\u2192"} Represent {"\u2192"} Reflect</strong>, grounded in Productive Failure (Kapur, 2012), Multiple Representations (Ainsworth, 2006), Conceptual Change (diSessa, 2022), Self-Regulated Learning (J{"\u00E4"}rvel{"\u00E4"} et al., 2018).</div>
+          <div style={{fontSize:11.5,color:"#888",lineHeight:1.8}}>Each lesson follows <strong style={{color:"#bbb"}}>Predict {"\u2192"} Explore {"\u2192"} Represent {"\u2192"} Reflect</strong>, a four-step cycle grounded in Productive Failure (Kapur & Bielaczyc, 2012), Multiple Representations (Ainsworth, 2006), Self-Regulated Learning (J{"\u00E4"}rvel{"\u00E4"} et al., 2018), and Conceptual Change research (diSessa, 2022).</div>
         </div>
       </div>
     </div>
@@ -425,10 +432,10 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
     <div style={{fontFamily:"'DM Sans',sans-serif",minHeight:"100vh",background:"#08080f",color:"#e0e0ea"}}>
       <style>{CSS}</style>
       <div style={{padding:"9px 18px",borderBottom:"1px solid #131320",display:"flex",alignItems:"center",justifyContent:"space-between",background:"#0a0a10"}}>
-        <button onClick={()=>setView("home")} style={{display:"flex",alignItems:"center",gap:7,background:"none",border:"none",color:"#666",cursor:"pointer",fontSize:12}}>
-          <span style={{width:26,height:26,borderRadius:6,background:"linear-gradient(135deg,#00ff88,#00bbff)",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,color:"#08080f"}}>{"\u03BB"}</span>{"\u2190"} Curriculum
+        <button onClick={()=>setView("home")} style={{display:"flex",alignItems:"center",gap:7,background:"none",border:"none",color:"#999",cursor:"pointer",fontSize:12}}>
+          <svg width="22" height="16" viewBox="0 0 200 56" fill="none"><defs><linearGradient id="lgSm" x1="0" y1="0" x2="200" y2="56"><stop offset="0%" stopColor="#00ff88"/><stop offset="100%" stopColor="#00bbff"/></linearGradient></defs><circle cx="20" cy="24" r="14" stroke="url(#lgSm)" strokeWidth="4.5" fill="none" strokeDasharray="66 22" strokeDashoffset="-6" strokeLinecap="round"/><circle cx="37" cy="15" r="5" stroke="url(#lgSm)" strokeWidth="3" fill="none" opacity="0.75"/><circle cx="33.5" cy="10.5" r="2" fill="url(#lgSm)" opacity="0.35"/></svg>{"\u2190"} Curriculum
         </button>
-        <span style={{fontSize:11,color:"#444",fontFamily:"'JetBrains Mono',monospace"}}>Module 2 {"\u00B7"} For Loops</span>
+        <span style={{fontSize:11,color:"#888",fontFamily:"'JetBrains Mono',monospace"}}>Module 2 {"\u00B7"} For Loops</span>
       </div>
       <div style={{padding:"10px 18px",display:"flex",gap:4,borderBottom:"1px solid #101018"}}>
         {STEPS.map((s,i)=>{const m=SM[s],a=i===step,ok=i<=maxS;return(
@@ -441,7 +448,7 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
         {/* PREDICT */}
         {step===0&&<div className="fade-up" key="s0">
           <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>What do you think this code will do?</h2>
-          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:18}}>Use your gut feeling. Wrong predictions are <em>better</em> for learning.</p>
+          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:18}}>Making a prediction activates your prior knowledge and prepares your mind for deeper understanding (Kapur, 2012).</p>
           <CodeEl code={'fruits = ["apple", "banana", "cherry"]\nfor fruit in fruits:\n    print(fruit)'} accent="#00ff88"/>
           <div style={{marginTop:20}}>
             {!subm?<>
@@ -466,7 +473,7 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
               {showFb&&useCust&&<div className="fade-up" style={{marginTop:14}}>
                 <div style={{background:"#0e1a2e",borderRadius:12,padding:"14px 18px",border:"1px solid #1a3050"}}>
                   <div style={{fontSize:10,color:"#3b82f6",fontWeight:700,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>{"\u{1F916}"} AI Analysis</div>
-                  {aiLd?<div style={{color:"#555",fontSize:13}}>Analyzing<span style={{animation:"blink 1s step-end infinite"}}>...</span></div>:<div style={{fontSize:13,color:"#8899b0",lineHeight:1.8,whiteSpace:"pre-wrap"}}>{aiFb}</div>}
+                  {aiLd?<div style={{color:"#999",fontSize:13}}>Analyzing<span style={{animation:"blink 1s step-end infinite"}}>...</span></div>:<div style={{fontSize:13,color:"#b0c8e0",lineHeight:1.8,whiteSpace:"pre-wrap"}}>{aiFb}</div>}
                 </div>
                 {!aiLd&&aiFb&&<Btn onClick={()=>go(1)} bg="linear-gradient(135deg,#ffbf00,#ff9500)" sx={{marginTop:14}}>Continue {"\u2192"}</Btn>}
               </div>}
@@ -477,14 +484,14 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
         {/* STRUGGLE */}
         {step===1&&<div className="fade-up" key="s1">
           <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>Explore: What happens when you change the code?</h2>
-          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:16}}>Try variations. Predict before running.</p>
+          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:16}}>Experiment freely with variations. When you need guidance, the AI tutor is here to help.</p>
           <div style={{display:"flex",gap:5,marginBottom:12,flexWrap:"wrap"}}>
             {VARS.map((v,i)=><button key={v.k} onClick={()=>{setVari(i);setSO([]);setSR(false);}} style={{padding:"6px 13px",borderRadius:7,border:"none",background:vari===i?"#ffbf000A":"#0b0b14",border:vari===i?"1.5px solid #ffbf0038":"1.5px solid #1a1a2a",color:vari===i?"#ffbf00":"#555",fontSize:12.5,fontWeight:vari===i?600:400,cursor:"pointer"}}>{v.l}</button>)}
           </div>
           <CodeEl code={VARS[vari].code} accent="#ffbf00"/>
           <div style={{display:"flex",gap:8,alignItems:"center",marginTop:12,marginBottom:12}}>
             <Btn disabled={sR} bg="linear-gradient(135deg,#ffbf00,#ff9500)" onClick={()=>runO(VARS[vari].out,setSO,setSR)}>{sR?"Running...":"\u25B6 Run Code"}</Btn>
-            <span style={{fontSize:11,color:"#444"}}>Predict first, then verify</span>
+            <span style={{fontSize:11,color:"#888"}}>Predict first, then verify</span>
           </div>
           <OutEl lines={sO} running={sR} color="#ffbf00"/>
           <Btn onClick={()=>go(2)} bg="linear-gradient(135deg,#63b3ff,#3b82f6)" color="#fff" sx={{marginTop:16}}>I've explored enough {"\u2192"}</Btn>
@@ -494,7 +501,7 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
         {/* REPRESENT */}
         {step===2&&<div className="fade-up" key="s2">
           <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>Choose how you want to understand this</h2>
-          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:16}}>Pick what clicks for <em>you</em>, or try them all.</p>
+          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:16}}>Choose the representation that resonates with how you think. Different learners benefit from different perspectives (Ainsworth, 2006).</p>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:20}}>
             {[
               {k:"annotated",i:"\u{1F4DD}",t:"Line-by-Line",d:"Step-by-step code breakdown"},
@@ -505,7 +512,7 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
               {k:"compare",i:"\u{1F504}",t:"With vs Without",d:"Why loops exist"},
             ].map(r=>(
               <button key={r.k} onClick={()=>setSelR(r.k)} style={{padding:"14px 10px",borderRadius:11,textAlign:"left",border:selR===r.k?"1.5px solid #63b3ff":"1.5px solid #1a1a2a",background:selR===r.k?"#63b3ff08":"#0b0b14",cursor:"pointer"}}>
-                <div style={{fontSize:20,marginBottom:5}}>{r.i}</div><div style={{fontSize:12,fontWeight:600,color:selR===r.k?"#e0e0ea":"#999",marginBottom:2}}>{r.t}</div><div style={{fontSize:10.5,color:"#444"}}>{r.d}</div>
+                <div style={{fontSize:20,marginBottom:5}}>{r.i}</div><div style={{fontSize:12,fontWeight:600,color:selR===r.k?"#e0e0ea":"#999",marginBottom:2}}>{r.t}</div><div style={{fontSize:10.5,color:"#888"}}>{r.d}</div>
               </button>))}
           </div>
 
@@ -518,11 +525,11 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
               {c:"    print(fruit)",n:3,t:"print() displays the current value of 'fruit'. The 4-space indent is critical \u2014 it tells Python this line is inside the loop. No indent = not part of the loop."},
             ].map((x,i)=>(
               <div key={i} style={{marginBottom:16,paddingBottom:16,borderBottom:i<2?"1px solid #141420":"none"}}>
-                <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12.5,color:"#d4d4d4",padding:"8px 12px",background:"#08080f",borderRadius:6,marginBottom:8}}><span style={{color:"#333",marginRight:10}}>{x.n}</span>{x.c}</div>
+                <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12.5,color:"#d4d4d4",padding:"8px 12px",background:"#08080f",borderRadius:6,marginBottom:8}}><span style={{color:"#777",marginRight:10}}>{x.n}</span>{x.c}</div>
                 <div style={{fontSize:12.5,color:"#888",lineHeight:1.75,paddingLeft:12,borderLeft:"2px solid #63b3ff28"}}>{x.t}</div>
               </div>))}
-            <div style={{padding:"10px 14px",borderRadius:8,background:"#63b3ff06",fontSize:12,color:"#666",lineHeight:1.6}}>
-              {"\u{1F4A1}"} <strong style={{color:"#63b3ff"}}>Key:</strong> The for loop creates a cycle \u2014 assign, execute, move to next. Stops when the list is exhausted.
+            <div style={{padding:"10px 14px",borderRadius:8,background:"#63b3ff06",fontSize:12,color:"#999",lineHeight:1.6}}>
+              {"\u{1F4A1}"} <strong style={{color:"#63b3ff"}}>Key:</strong> The for loop repeats a block of code once for each item in a sequence. Stops when the list is exhausted.
             </div>
           </div>}
 
@@ -535,7 +542,7 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
               <button onClick={()=>anP?anPlay():setAnP(true)} style={{padding:"5px 12px",borderRadius:6,background:"#63b3ff0D",border:"1px solid #63b3ff20",color:"#63b3ff",fontSize:11,cursor:"pointer"}}>{anP?"\u25B6 Play":"\u23F8 Pause"}</button>
               <button onClick={anStepF} style={{padding:"5px 12px",borderRadius:6,background:"#63b3ff0D",border:"1px solid #63b3ff20",color:"#63b3ff",fontSize:11,cursor:"pointer"}}>{"\u23E9"} Next</button>
               <button onClick={()=>{setSelR(null);setTimeout(()=>setSelR("trace"),80);}} style={{padding:"5px 12px",borderRadius:6,background:"#63b3ff0D",border:"1px solid #63b3ff20",color:"#63b3ff",fontSize:11,cursor:"pointer"}}>{"\u{1F504}"}</button>
-              <span style={{fontSize:11,color:"#444"}}>{anS===-1?"Ready":anS<3?`Iteration ${anS+1}/3`:"Done"}</span>
+              <span style={{fontSize:11,color:"#888"}}>{anS===-1?"Ready":anS<3?`Iteration ${anS+1}/3`:"Done"}</span>
             </div>
           </div>}
 
@@ -544,7 +551,7 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
             <div style={{fontSize:12,fontWeight:600,color:"#63b3ff",marginBottom:14}}>{"\u{1F3AC}"} Step-by-Step Animation</div>
             <div style={{display:"flex",gap:24,flexWrap:"wrap",alignItems:"flex-start"}}>
               <div>
-                <div style={{fontSize:10,color:"#444",marginBottom:8,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em"}}>fruits</div>
+                <div style={{fontSize:10,color:"#888",marginBottom:8,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em"}}>fruits</div>
                 <div style={{display:"flex",gap:5}}>
                   {["apple","banana","cherry"].map((f,i)=>(
                     <div key={f} style={{padding:"10px 14px",borderRadius:7,textAlign:"center",background:anS===i?"#63b3ff10":"#08080f",border:anS===i?"1.5px solid #63b3ff":i<anS?"1.5px solid #00ff8830":"1.5px solid #1a1a2a",color:anS===i?"#63b3ff":i<anS?"#00ff8880":"#444",fontFamily:"'JetBrains Mono',monospace",fontSize:12.5,transition:"all .4s",transform:anS===i?"scale(1.06)":"scale(1)"}}>
@@ -553,13 +560,13 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
                 </div>
               </div>
               <div>
-                <div style={{fontSize:10,color:"#444",marginBottom:8,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em"}}>output</div>
+                <div style={{fontSize:10,color:"#888",marginBottom:8,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em"}}>output</div>
                 <div style={{background:"#08080f",borderRadius:7,padding:"10px 14px",minWidth:100,minHeight:60,fontFamily:"'JetBrains Mono',monospace",fontSize:12.5,lineHeight:2}}>
                   {["apple","banana","cherry"].filter((_,i)=>i<=anS&&anS<4).map((f,i)=><div key={i} style={{color:"#63b3ff"}}>{f}</div>)}
                 </div>
               </div>
             </div>
-            <div style={{marginTop:12,fontSize:12,color:"#666",lineHeight:1.6,minHeight:18}}>
+            <div style={{marginTop:12,fontSize:12,color:"#999",lineHeight:1.6,minHeight:18}}>
               {anS===-1&&"Starting..."}{anS===0&&'Iteration 1: fruit = "apple" \u2192 print(fruit)'}{anS===1&&'Iteration 2: fruit = "banana" \u2192 print(fruit)'}{anS===2&&'Iteration 3: fruit = "cherry" \u2192 print(fruit)'}{anS>=3&&"\u2705 Loop complete \u2014 3 iterations."}
             </div>
             <div style={{display:"flex",gap:8,marginTop:10}}>
@@ -578,7 +585,7 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
               <div style={{background:"#08080f",borderRadius:9,padding:"14px 16px",margin:"10px 0",lineHeight:2.2,fontSize:12.5}}>
                 {"\u{1F91E}"} Pull {"\u{1F34E}"} "apple" {"\u2192"} say aloud (print)<br/>{"\u{1F91E}"} Pull {"\u{1F34C}"} "banana" {"\u2192"} say aloud<br/>{"\u{1F91E}"} Pull {"\u{1F352}"} "cherry" {"\u2192"} say aloud<br/>{"\u{1F91E}"} Empty {"\u2192"} done!
               </div>
-              <p style={{color:"#777",marginTop:8}}><strong style={{color:"#ffbf00"}}>Key:</strong> One at a time, not all at once.</p>
+              <p style={{color:"#777",marginTop:8}}><strong style={{color:"#ffbf00"}}>Key:</strong> The loop processes each item in order, one by one.</p>
             </div>
           </div>}
 
@@ -598,17 +605,17 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
             </div>
           </div>}
 
-          {/* VIDEO */}
+          {/* VIDEO EMBED AREA */}
           <div style={{marginTop:8,marginBottom:16,borderRadius:12,overflow:"hidden",border:"1px solid #1a2a3a"}}>
             <div style={{background:"#0b0b14",padding:"20px",textAlign:"center"}}>
               <div style={{fontSize:16,marginBottom:8}}>{"\u{1F3A5}"}</div>
               <div style={{fontSize:13,fontWeight:600,color:"#888",marginBottom:4}}>Video Lesson</div>
-              {/* === YOUR VIDEO: Put video.mp4 in the public/ folder === */}
-              <video src="./video.mp4" controls style={{width:"100%",borderRadius:8,maxHeight:300,background:"#08080f"}}
-                poster="" onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}/>
-              <div style={{width:"100%",height:180,background:"#08080f",borderRadius:8,display:"none",alignItems:"center",justifyContent:"center",border:"1px dashed #1a2a3a",flexDirection:"column",gap:8}}>
-                <span style={{color:"#222",fontSize:36}}>{"\u25B6"}</span>
-                <span style={{color:"#333",fontSize:11}}>Put video.mp4 in the public/ folder</span>
+              <div style={{fontSize:11.5,color:"#888",lineHeight:1.6,marginBottom:12}}>A short explainer will be embedded here.</div>
+              {/* ===== TO ADD YOUR VIDEO: Replace this div with: ===== */}
+              {/* <video src="YOUR_VIDEO_URL.mp4" controls style={{width:"100%",borderRadius:8,maxHeight:300}}/> */}
+              {/* Or for YouTube: <iframe src="https://www.youtube.com/embed/VIDEO_ID" style={{width:"100%",height:280,border:"none",borderRadius:8}} allow="accelerometer; autoplay; clipboard-write; encrypted-media" allowFullScreen/> */}
+              <div style={{width:"100%",height:180,background:"#08080f",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",border:"1px dashed #1a2a3a"}}>
+                <span style={{color:"#888",fontSize:36}}>{"\u25B6"}</span>
               </div>
             </div>
           </div>
@@ -619,7 +626,7 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
         {/* REFLECT */}
         {step===3&&<div className="fade-up" key="s3">
           <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>Reflect: What just happened in your head?</h2>
-          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:18}}>Writing in your own words activates the <strong style={{color:"#999"}}>self-explanation effect</strong> (Chi et al., 1989). Then AI gives you personalized feedback.</p>
+          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:18}}>Articulating your understanding in your own words deepens learning through self-explanation (Chi et al., 1989). After you write, the AI provides personalized feedback.</p>
           <div style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #a78bfa18",marginBottom:16}}>
             <div style={{marginBottom:18}}>
               <div style={{fontSize:12,fontWeight:600,color:"#a78bfa",marginBottom:6}}>1. Prediction vs. Reality</div>
@@ -633,13 +640,14 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
               {refl.trim()&&!reflFb&&!reflLd&&<button onClick={evalRefl} style={{marginTop:8,padding:"7px 16px",borderRadius:7,background:"#a78bfa10",border:"1px solid #a78bfa25",color:"#a78bfa",fontSize:12,cursor:"pointer",fontWeight:600}}>{"\u{1F916}"} Get AI Feedback</button>}
               {(reflLd||reflFb)&&<div className="fade-up" style={{marginTop:10,background:"#0e1a2e",borderRadius:10,padding:"14px 16px",border:"1px solid #1a3050"}}>
                 <div style={{fontSize:10,color:"#a78bfa",fontWeight:700,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>{"\u{1F916}"} Feedback</div>
-                {reflLd?<div style={{color:"#555",fontSize:13}}>Evaluating<span style={{animation:"blink 1s step-end infinite"}}>...</span></div>:<div style={{fontSize:13,color:"#8899b0",lineHeight:1.8,whiteSpace:"pre-wrap"}}>{reflFb}</div>}
+                {reflLd?<div style={{color:"#999",fontSize:13}}>Evaluating<span style={{animation:"blink 1s step-end infinite"}}>...</span></div>:<div style={{fontSize:13,color:"#b0c8e0",lineHeight:1.8,whiteSpace:"pre-wrap"}}>{reflFb}</div>}
               </div>}
             </div>
             <div>
-              <div style={{fontSize:12,fontWeight:600,color:"#a78bfa",marginBottom:6}}>3. Most helpful representation?</div>
+              <div style={{fontSize:12,fontWeight:600,color:"#a78bfa",marginBottom:6}}>3. Which representation helped you most?</div>
+              <div style={{fontSize:11,color:"#889",marginBottom:8,lineHeight:1.5}}>Noticing how you learn best is a metacognitive skill that improves over time.</div>
               <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                {[{k:"annotated",l:"\u{1F4DD} Line-by-line"},{k:"trace",l:"\u{1F4CA} Trace"},{k:"anim",l:"\u{1F3AC} Animation"},{k:"analogy",l:"\u{1F9FA} Analogy"},{k:"mindmap",l:"\u{1F578} Mind Map"},{k:"compare",l:"\u{1F504} Compare"}].map(r=><button key={r.k} onClick={()=>setRepC(r.k)} style={{padding:"6px 12px",borderRadius:7,border:repC===r.k?"1.5px solid #a78bfa":"1.5px solid #1a1a2a",background:repC===r.k?"#a78bfa0A":"#0b0b14",color:repC===r.k?"#a78bfa":"#555",fontSize:11.5,cursor:"pointer"}}>{r.l}</button>)}
+                {[{k:"annotated",l:"\u{1F4DD} Line-by-line"},{k:"trace",l:"\u{1F4CA} Trace"},{k:"anim",l:"\u{1F3AC} Animation"},{k:"analogy",l:"\u{1F9FA} Analogy"},{k:"mindmap",l:"\u{1F578} Mind Map"},{k:"compare",l:"\u{1F504} Compare"}].map(r=><button key={r.k} onClick={()=>setRepC(r.k)} style={{padding:"6px 12px",borderRadius:7,border:repC===r.k?"1.5px solid #a78bfa":"1.5px solid #1a1a2a",background:repC===r.k?"#a78bfa0A":"#0b0b14",color:repC===r.k?"#a78bfa":"#999",fontSize:11.5,cursor:"pointer"}}>{r.l}</button>)}
               </div>
             </div>
           </div>
