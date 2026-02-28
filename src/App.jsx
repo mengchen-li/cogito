@@ -608,14 +608,11 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
           {/* VIDEO EMBED AREA */}
           <div style={{marginTop:8,marginBottom:16,borderRadius:12,overflow:"hidden",border:"1px solid #1a2a3a"}}>
             <div style={{background:"#0b0b14",padding:"20px",textAlign:"center"}}>
-              <div style={{fontSize:16,marginBottom:8}}>{"\u{1F3A5}"}</div>
-              <div style={{fontSize:13,fontWeight:600,color:"#888",marginBottom:4}}>Video Lesson</div>
-              <div style={{fontSize:11.5,color:"#888",lineHeight:1.6,marginBottom:12}}>A short explainer will be embedded here.</div>
-              {/* ===== TO ADD YOUR VIDEO: Replace this div with: ===== */}
-              {/* <video src="YOUR_VIDEO_URL.mp4" controls style={{width:"100%",borderRadius:8,maxHeight:300}}/> */}
-              {/* Or for YouTube: <iframe src="https://www.youtube.com/embed/VIDEO_ID" style={{width:"100%",height:280,border:"none",borderRadius:8}} allow="accelerometer; autoplay; clipboard-write; encrypted-media" allowFullScreen/> */}
-              <div style={{width:"100%",height:180,background:"#08080f",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",border:"1px dashed #1a2a3a"}}>
+              <video src="./video.mp4" controls playsInline style={{width:"100%",borderRadius:8,maxHeight:340,background:"#08080f"}}
+                onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}/>
+              <div style={{display:"none",width:"100%",height:180,background:"#08080f",borderRadius:8,alignItems:"center",justifyContent:"center",border:"1px dashed #1a2a3a",flexDirection:"column",gap:8}}>
                 <span style={{color:"#888",fontSize:36}}>{"\u25B6"}</span>
+                <span style={{color:"#666",fontSize:11}}>Place video.mp4 in the public folder</span>
               </div>
             </div>
           </div>
