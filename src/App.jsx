@@ -58,12 +58,153 @@ const CURRIC = [
   ]},
 ];
 
-const STEPS = ["predict","struggle","represent","reflect"];
+// NEW: added "orient" and "extend" around the original four steps
+const STEPS = ["orient","predict","struggle","represent","reflect","extend"];
 const SM = {
+  orient:{e:"\u{1F9ED}",l:"Orient",c:"#ff6b9d",th:"Learner Profile"}, // NEW
   predict:{e:"\u{1F52E}",l:"Predict",c:"#00ff88",th:"Productive Failure"},
   struggle:{e:"\u{1F9E9}",l:"Explore",c:"#ffbf00",th:"Active Learning"},
   represent:{e:"\u{1F3A8}",l:"Understand",c:"#63b3ff",th:"Multiple Representations"},
   reflect:{e:"\u{1F4AD}",l:"Reflect",c:"#a78bfa",th:"Metacognition"},
+  extend:{e:"\u{1F680}",l:"Extend",c:"#00d9ff",th:"Transfer & Connection"}, // NEW
+};
+
+// NEW: Orient phase questions (reorganized, all in English, includes AI tone preference)
+const ORIENT_Q = [
+  {
+    key: "experience",
+    q: "How much programming have you done before?",
+    sub: "Be honest \u2014 this shapes how I explain things.",
+    multi: false,
+    opts: [
+      "Absolute beginner \u2014 never written code",
+      "Dabbled a bit \u2014 tried a tutorial or two",
+      "Know the basics \u2014 variables, loops, conditionals",
+      "Built small projects on my own",
+      "Comfortable with mid-sized projects",
+      "Professional developer / researcher",
+    ],
+  },
+  {
+    key: "languages",
+    q: "Which languages or tools have you used before? (multi-select)",
+    sub: "Even a little exposure counts.",
+    multi: true,
+    opts: [
+      "Python",
+      "JavaScript / TypeScript",
+      "Java / Kotlin",
+      "C / C++ / Rust",
+      "R / MATLAB / Julia",
+      "SQL",
+      "HTML / CSS",
+      "Excel formulas / Google Sheets",
+      "None yet",
+    ],
+  },
+  {
+    key: "purpose",
+    q: "What are you hoping to use Python for?",
+    sub: "This helps me pick examples that actually matter to you.",
+    multi: false,
+    opts: [
+      "Data analysis or research",
+      "Automating boring tasks",
+      "Building web apps or tools",
+      "Machine learning / AI",
+      "School or coursework",
+      "Career change into tech",
+      "Just curious, no specific goal",
+    ],
+  },
+  {
+    key: "tone",
+    q: "How would you like me to explain things?",
+    sub: "Pick the vibe that makes you want to keep learning. I'll actually adjust my tone based on this.",
+    multi: false,
+    opts: [
+      "Concise and direct \u2014 just the essentials",
+      "Step-by-step with lots of worked examples",
+      "Socratic \u2014 ask me questions, let me figure it out",
+      "Warm and encouraging \u2014 celebrate small wins",
+      "Technical and precise \u2014 don't dumb it down",
+      "Metaphors and analogies \u2014 relate it to real life",
+    ],
+  },
+  {
+    key: "approach",
+    q: "When a new concept confuses you, what helps most?",
+    sub: "Your brain's preferred on-ramp.",
+    multi: false,
+    opts: [
+      "Seeing a worked example first",
+      "Trying it myself and breaking it",
+      "Reading docs or a textbook explanation",
+      "Watching someone walk through it",
+      "Drawing it out on paper",
+      "Predicting first, then checking",
+    ],
+  },
+  {
+    key: "stuck",
+    q: "When you get stuck, what do you usually do first?",
+    sub: "There's no wrong answer \u2014 this tells me when to jump in.",
+    multi: false,
+    opts: [
+      "Keep poking at it until it works",
+      "Search online / Stack Overflow",
+      "Ask an AI assistant",
+      "Talk it out with someone",
+      "Step away, come back later",
+      "Skip ahead and circle back",
+    ],
+  },
+];
+
+// NEW: Map tone preference to an instruction fragment for AI system prompts
+const TONE_INSTRUCTIONS = {
+  "Concise and direct \u2014 just the essentials": "Be concise and direct. Skip pleasantries. Give the essential answer in 2-3 tight sentences.",
+  "Step-by-step with lots of worked examples": "Explain step-by-step with concrete worked examples. Show intermediate states. Number the steps.",
+  "Socratic \u2014 ask me questions, let me figure it out": "Use a Socratic style. Instead of giving answers directly, ask one guiding question that helps the learner discover the answer themselves. Keep it short.",
+  "Warm and encouraging \u2014 celebrate small wins": "Be warm and encouraging. Acknowledge effort, celebrate small wins, and keep the tone friendly.",
+  "Technical and precise \u2014 don't dumb it down": "Use precise technical language. Don't over-simplify. Assume the learner can handle correct terminology.",
+  "Metaphors and analogies \u2014 relate it to real life": "Lead with a vivid real-world metaphor or analogy before explaining the technical detail.",
+};
+
+// NEW: Build an AI system-prompt fragment from the learner profile
+function buildProfileContext(answers){
+  if(!answers||Object.keys(answers).length===0) return "";
+  const parts = [];
+  const exp = answers.experience?.selected;
+  if(exp) parts.push(`Experience level: ${exp}.`);
+  const langs = answers.languages?.selected;
+  if(Array.isArray(langs)&&langs.length) parts.push(`Has used: ${langs.join(", ")}.`);
+  const purpose = answers.purpose?.selected;
+  if(purpose) parts.push(`Learning Python for: ${purpose}.`);
+  const tone = answers.tone?.selected;
+  const toneInstr = tone ? (TONE_INSTRUCTIONS[tone] || "") : "";
+  const approach = answers.approach?.selected;
+  if(approach) parts.push(`Prefers: ${approach}.`);
+  const customs = Object.entries(answers).map(([k,v])=>v?.custom?`${k}: ${v.custom}`:null).filter(Boolean);
+  if(customs.length) parts.push(`Self-described: ${customs.join("; ")}.`);
+  const profile = parts.length ? `LEARNER PROFILE: ${parts.join(" ")}` : "";
+  return [profile, toneInstr].filter(Boolean).join("\n\n");
+}
+
+// NEW: Transfer prediction data for Extend phase
+const TRANSFER_PREDS = [
+  {id:"a",t:"0 1 2 3 4"},
+  {id:"b",t:"0 2 4 6 8"},
+  {id:"c",t:"2 4 6 8 10"},
+  {id:"d",t:"0 5 10 15 20"},
+];
+const TRANSFER_CORRECT = "b"; // NEW
+const TRANSFER_OUT = ["0","2","4","6","8"]; // NEW
+const TRANSFER_FB = {
+  a:{ok:false,ti:"Close \u2014 look at the expression inside print() again",bd:"You might have missed the i * 2 part. range(5) does produce 0 through 4, but print outputs i * 2, not i itself."},
+  b:{ok:true,ti:"Exactly right!",bd:"range(5) generates 0 to 4, and each value gets multiplied by 2 \u2014 giving 0, 2, 4, 6, 8. You've transferred the for-loop model to a new kind of iterable."},
+  c:{ok:false,ti:"Almost \u2014 the starting point is off",bd:"range(5) starts from 0, not from 1. So the first output is 0 * 2 = 0, not 2. The rest of your pattern is correct."},
+  d:{ok:false,ti:"This mixes up what range(5) means",bd:"range(5) means 'produce five numbers starting from 0' (so 0, 1, 2, 3, 4). It does not mean 'step by 5'. To step by 5, you'd write range(0, n, 5)."},
 };
 
 const PREDS = [
@@ -218,8 +359,53 @@ function MindMap(){
   );
 }
 
+// NEW: Connection map SVG for Extend phase
+function ConnectionMap(){
+  const nodes = [
+    {x:90, y:70, label:"Variables", col:"#00ff88"},
+    {x:90, y:130, label:"Lists", col:"#00ff88"},
+    {x:90, y:190, label:"Strings", col:"#00ff88"},
+    {x:300, y:130, label:"For Loops", col:"#ffbf00", big:true},
+    {x:510, y:100, label:"While Loops", col:"#a78bfa"},
+    {x:510, y:170, label:"Conditionals", col:"#a78bfa"},
+  ];
+  const edges = [
+    {from:0,to:3},{from:1,to:3},{from:2,to:3},
+    {from:3,to:4},{from:3,to:5},
+  ];
+  return (
+    <svg viewBox="0 0 600 240" style={{width:"100%",maxWidth:560,display:"block",margin:"0 auto"}}>
+      <defs>
+        <marker id="ahCM" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#445"/>
+        </marker>
+      </defs>
+      <text x="90" y="22" textAnchor="middle" fill="#00ff88" fontSize="11" fontWeight="700" fontFamily="'DM Sans',sans-serif">Learned</text>
+      <text x="300" y="22" textAnchor="middle" fill="#ffbf00" fontSize="11" fontWeight="700" fontFamily="'DM Sans',sans-serif">Now</text>
+      <text x="510" y="22" textAnchor="middle" fill="#a78bfa" fontSize="11" fontWeight="700" fontFamily="'DM Sans',sans-serif">Next up</text>
+      {edges.map((e,i)=>{
+        const f=nodes[e.from],t=nodes[e.to];
+        const fw=f.big?55:50, tw=t.big?55:50;
+        return <line key={i} x1={f.x+fw} y1={f.y} x2={t.x-tw} y2={t.y} stroke={`${t.col}50`} strokeWidth="1.5" markerEnd="url(#ahCM)"/>;
+      })}
+      {nodes.map((n,i)=>{
+        const w=n.big?110:100, h=n.big?40:32;
+        return (
+          <g key={i}>
+            <rect x={n.x-w/2} y={n.y-h/2} width={w} height={h} rx="8"
+              fill={`${n.col}${n.big?"20":"10"}`} stroke={n.col} strokeWidth={n.big?2:1}/>
+            <text x={n.x} y={n.y} textAnchor="middle" dominantBaseline="central"
+              fill={n.col} fontSize={n.big?13:11.5} fontWeight={n.big?700:500}
+              fontFamily="'DM Sans',sans-serif">{n.label}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 // ★ CUTE Floating AI with animated code-face
-function FloatingAI({variant}){
+function FloatingAI({variant,profile}){/* NEW: profile prop */
   const [open,setOpen]=useState(false);
   const [msgs,setMsgs]=useState([]);
   const [input,setInput]=useState("");
@@ -233,7 +419,8 @@ function FloatingAI({variant}){
     if(!input.trim()||loading)return;
     const um=input.trim();setInput("");
     const nm=[...msgs,{role:"user",content:um}];setMsgs(nm);setLoading(true);
-    const sys=`You are a friendly Python tutor helping an absolute beginner. Current code:\n\n${v.code}\n\nOutput: ${v.out.join("\\n")}\n\nRules: Give clear, helpful explanations with examples. Keep responses concise (3-5 sentences). Be warm and encouraging.`;
+    const profileCtx=buildProfileContext(profile||{});/* NEW: learner profile */
+    const sys=`${profileCtx}\n\nYou are a friendly Python tutor helping an absolute beginner. Current code:\n\n${v.code}\n\nOutput: ${v.out.join("\\n")}\n\nRules: Give clear, helpful explanations with examples. Keep responses concise (3-5 sentences).`;
     const resp=await askAI(sys,nm.map(m=>({role:m.role,content:m.content})));
     setMsgs(p=>[...p,{role:"assistant",content:resp}]);setLoading(false);
   }
@@ -342,8 +529,64 @@ export default function App(){
   const[keyInput,setKeyInput]=useState(getApiKey());
   const[keySaved,setKeySaved]=useState(!!getApiKey());
 
+  // NEW: Orient phase state
+  const[orientStep,setOrientStep]=useState(0);
+  const[orientAnswers,setOrientAnswers]=useState({});
+  const[orientDir,setOrientDir]=useState("next");
+
+  // NEW: Extend phase state
+  const[transferPred,setTransferPred]=useState(null);
+  const[transferCustom,setTransferCustom]=useState("");
+  const[transferUseCust,setTransferUseCust]=useState(false);
+  const[transferSubm,setTransferSubm]=useState(false);
+  const[transferOut,setTransferOut]=useState([]);
+  const[transferRun,setTransferRun]=useState(false);
+  const[journalEntry,setJournalEntry]=useState("");
+
   function runO(arr,sL,sR,cb){sR(true);sL([]);arr.forEach((l,i)=>{setTimeout(()=>{sL(p=>[...p,l]);if(i===arr.length-1){sR(false);if(cb)setTimeout(cb,500);}},((i+1)*420));});}
   function go(s){setStep(s);if(s>maxS)setMaxS(s);setSO([]);setSR(false);}
+
+  // NEW: Orient helpers
+  function orientSelect(key, opt, multi){
+    setOrientAnswers(p=>{
+      const cur=p[key]||{selected:multi?[]:null,custom:""};
+      if(multi){
+        const arr=cur.selected||[];
+        const nArr=arr.includes(opt)?arr.filter(x=>x!==opt):[...arr,opt];
+        return {...p,[key]:{...cur,selected:nArr}};
+      }
+      return {...p,[key]:{...cur,selected:opt}};
+    });
+  }
+  function orientSetCustom(key, val){
+    setOrientAnswers(p=>{
+      const cur=p[key]||{selected:null,custom:""};
+      return {...p,[key]:{...cur,custom:val}};
+    });
+  }
+  function orientCanProceed(){
+    const q=ORIENT_Q[orientStep];
+    const ans=orientAnswers[q.key];
+    if(!ans)return false;
+    const sel=ans.selected;
+    const hasSel=q.multi?(sel&&sel.length>0):!!sel;
+    const hasCust=!!(ans.custom&&ans.custom.trim());
+    return hasSel||hasCust;
+  }
+  function orientNext(){
+    if(orientStep<ORIENT_Q.length-1){
+      setOrientDir("next");
+      setOrientStep(p=>p+1);
+    } else {
+      go(1); // NEW: enter predict phase
+    }
+  }
+  function orientPrev(){
+    if(orientStep>0){
+      setOrientDir("prev");
+      setOrientStep(p=>p-1);
+    }
+  }
 
   useEffect(()=>{
     if(selR==="trace"||selR==="anim"){setAnS(-1);setAnP(false);let idx=0;anRef.current=setInterval(()=>{setAnS(idx);idx++;if(idx>3)clearInterval(anRef.current);},2200);return()=>clearInterval(anRef.current);}
@@ -352,17 +595,21 @@ export default function App(){
   function anPlay(){if(anS>=3){setSelR(null);setTimeout(()=>setSelR(selR),80);return;}setAnP(false);let idx=anS+1;anRef.current=setInterval(()=>{setAnS(idx);idx++;if(idx>3)clearInterval(anRef.current);},2200);}
   function anStepF(){setAnP(true);if(anS<3)setAnS(p=>p+1);}
 
-  async function analyzeCustom(){setAiLd(true);const sys=`You are a Python tutor for beginners learning for loops. Code:\n\nfruits = ["apple", "banana", "cherry"]\nfor fruit in fruits:\n    print(fruit)\n\nOutput: apple, banana, cherry (each on separate line). Analyze the student's prediction in 3-4 sentences: mental model, validate reasoning, explain divergence, warm correction.`;const r=await askAI(sys,[{role:"user",content:`My prediction: ${custom}`}]);setAiFb(r);setAiLd(false);}
-  async function evalRefl(){setReflLd(true);const sys=`Evaluate a beginner's for loop explanation. 3-4 sentences: what's right (specific), what's missing, suggestion, encouragement. Warm and constructive.`;const r=await askAI(sys,[{role:"user",content:`My explanation:\n\n${refl}`}]);setReflFb(r);setReflLd(false);}
+  async function analyzeCustom(){setAiLd(true);const profileCtx=buildProfileContext(orientAnswers);/* NEW: prepend learner profile */const sys=`${profileCtx}\n\nYou are a Python tutor for beginners learning for loops. Code:\n\nfruits = ["apple", "banana", "cherry"]\nfor fruit in fruits:\n    print(fruit)\n\nOutput: apple, banana, cherry (each on separate line). Analyze the student's prediction in 3-4 sentences: mental model, validate reasoning, explain divergence, warm correction.`;const r=await askAI(sys,[{role:"user",content:`My prediction: ${custom}`}]);setAiFb(r);setAiLd(false);}
+  async function evalRefl(){setReflLd(true);const profileCtx=buildProfileContext(orientAnswers);/* NEW: prepend learner profile */const sys=`${profileCtx}\n\nEvaluate a beginner's for loop explanation. 3-4 sentences: what's right (specific), what's missing, suggestion, encouragement. Warm and constructive.`;const r=await askAI(sys,[{role:"user",content:`My explanation:\n\n${refl}`}]);setReflFb(r);setReflLd(false);}
 
   const CSS=`@import url('${FU}');
 @keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 @keyframes glow{0%,100%{box-shadow:0 0 15px #00ff8812}50%{box-shadow:0 0 30px #00ff8820}}
+@keyframes orientInNext{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}
+@keyframes orientInPrev{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:translateX(0)}}
 *{box-sizing:border-box;margin:0;padding:0}html,body{background:#08080f}
 textarea:focus,button:focus,input:focus{outline:none}button{font-family:'DM Sans',sans-serif}
 .fade-up{animation:fadeUp .4s ease-out}
+.orient-next{animation:orientInNext .25s ease}
+.orient-prev{animation:orientInPrev .25s ease}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#222;border-radius:3px}
 input::placeholder,textarea::placeholder{color:#3a3a4a}`;
 
@@ -445,8 +692,72 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
       </div>
       <div style={{maxWidth:700,margin:"0 auto",padding:"22px 18px 48px"}}>
 
+        {/* NEW: ORIENT */}
+        {step===0&&(()=>{
+          const q=ORIENT_Q[orientStep];
+          const ans=orientAnswers[q.key]||{selected:q.multi?[]:null,custom:""};
+          const isLast=orientStep===ORIENT_Q.length-1;
+          return(
+            <div className="fade-up" key="s_orient">
+              <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>{"\u{1F9ED}"} Let me get to know you first</h2>
+              <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:18}}>A quick six-question intake so I can calibrate the lesson to your background and preferred style. Skip the options and type your own answer any time.</p>
+              {/* progress dots */}
+              <div style={{display:"flex",gap:6,marginBottom:18,alignItems:"center"}}>
+                {ORIENT_Q.map((_,i)=>(
+                  <div key={i} style={{
+                    width:i===orientStep?28:8,height:8,borderRadius:4,
+                    background:i<orientStep?"#ff6b9d":i===orientStep?"#ff6b9d":"#1a1a2a",
+                    transition:"all .25s ease",
+                  }}/>
+                ))}
+                <span style={{marginLeft:10,fontSize:11,color:"#777",fontFamily:"'JetBrains Mono',monospace"}}>{orientStep+1} / {ORIENT_Q.length}</span>
+              </div>
+              {/* question card with transition */}
+              <div key={`orientQ-${orientStep}`} className={orientDir==="next"?"orient-next":"orient-prev"}
+                style={{background:"#0b0b14",borderRadius:13,padding:"22px",border:"1px solid #ff6b9d18",marginBottom:16}}>
+                <div style={{fontSize:15,fontWeight:600,color:"#e0e0ea",marginBottom:6,lineHeight:1.5}}>{q.q}</div>
+                {q.sub&&<div style={{fontSize:12,color:"#888",marginBottom:14,lineHeight:1.6}}>{q.sub}</div>}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:14}}>
+                  {q.opts.map(opt=>{
+                    const sel=q.multi?(ans.selected||[]).includes(opt):ans.selected===opt;
+                    return(
+                      <button key={opt} onClick={()=>orientSelect(q.key,opt,q.multi)} style={{
+                        padding:"11px 13px",borderRadius:9,textAlign:"left",
+                        border:sel?"1.5px solid #ff6b9d":"1.5px solid #1a1a2a",
+                        background:sel?"#ff6b9d0A":"#08080f",
+                        color:sel?"#e8d0e0":"#888",
+                        fontSize:12.5,cursor:"pointer",lineHeight:1.5,
+                      }}>{q.multi&&<span style={{marginRight:6,color:sel?"#ff6b9d":"#444"}}>{sel?"\u25A0":"\u25A1"}</span>}{opt}</button>
+                    );
+                  })}
+                </div>
+                <div style={{padding:"12px 14px",borderRadius:9,border:ans.custom?"1.5px solid #ff6b9d40":"1.5px solid #1a1a2a",background:"#08080f"}}>
+                  <div style={{fontSize:11,color:"#ff6b9d",marginBottom:6,fontWeight:600}}>Other (write your own)</div>
+                  <input value={ans.custom||""} onChange={e=>orientSetCustom(q.key,e.target.value)}
+                    placeholder="In your own words..." style={{
+                      width:"100%",padding:"8px 10px",borderRadius:6,background:"#0b0b14",
+                      border:"1px solid #1a1a2a",color:"#e0e0ea",fontSize:12.5,
+                      fontFamily:"'DM Sans',sans-serif",
+                    }}/>
+                </div>
+              </div>
+              {/* nav buttons */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <button disabled={orientStep===0} onClick={orientPrev} style={{
+                  padding:"9px 18px",borderRadius:9,border:"1px solid #1a1a2a",
+                  background:"transparent",color:orientStep===0?"#333":"#999",
+                  fontSize:12.5,cursor:orientStep===0?"default":"pointer",
+                }}>{"\u2190 Previous"}</button>
+                <Btn disabled={!orientCanProceed()} bg="linear-gradient(135deg,#ff6b9d,#f5528c)" color="#fff" onClick={orientNext}>
+                  {isLast?"Start learning \u2192":"Next \u2192"}
+                </Btn>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* PREDICT */}
-        {step===0&&<div className="fade-up" key="s0">
+        {step===1&&<div className="fade-up" key="s0">{/* NEW: step index shifted from 0 to 1 */}
           <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>What do you think this code will do?</h2>
           <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:18}}>Making a prediction activates your prior knowledge and prepares your mind for deeper understanding (Kapur, 2012).</p>
           <CodeEl code={'fruits = ["apple", "banana", "cherry"]\nfor fruit in fruits:\n    print(fruit)'} accent="#00ff88"/>
@@ -468,21 +779,21 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
                   <div style={{fontSize:14,fontWeight:700,marginBottom:6,color:fb.ok?"#00ff88":"#ffbf00"}}>{fb.ok?"\u2728 ":"\u{1F914} "}{fb.ti}</div>
                   <div style={{fontSize:13,color:"#999",lineHeight:1.8}}>{fb.bd}</div>
                   {!fb.ok&&<div style={{marginTop:10,padding:"8px 12px",borderRadius:7,background:"#ffffff03",fontSize:11.5,color:"#888",lineHeight:1.6,fontStyle:"italic"}}>Research: wrong predictions lead to better retention (Kapur & Bielaczyc, 2012).</div>}
-                  <Btn onClick={()=>go(1)} bg="linear-gradient(135deg,#ffbf00,#ff9500)" sx={{marginTop:14}}>Continue {"\u2192"}</Btn>
+                  <Btn onClick={()=>go(2)/* NEW: go(1)→go(2) */} bg="linear-gradient(135deg,#ffbf00,#ff9500)" sx={{marginTop:14}}>Continue {"\u2192"}</Btn>
                 </div>);})()}
               {showFb&&useCust&&<div className="fade-up" style={{marginTop:14}}>
                 <div style={{background:"#0e1a2e",borderRadius:12,padding:"14px 18px",border:"1px solid #1a3050"}}>
                   <div style={{fontSize:10,color:"#3b82f6",fontWeight:700,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>{"\u{1F916}"} AI Analysis</div>
                   {aiLd?<div style={{color:"#999",fontSize:13}}>Analyzing<span style={{animation:"blink 1s step-end infinite"}}>...</span></div>:<div style={{fontSize:13,color:"#b0c8e0",lineHeight:1.8,whiteSpace:"pre-wrap"}}>{aiFb}</div>}
                 </div>
-                {!aiLd&&aiFb&&<Btn onClick={()=>go(1)} bg="linear-gradient(135deg,#ffbf00,#ff9500)" sx={{marginTop:14}}>Continue {"\u2192"}</Btn>}
+                {!aiLd&&aiFb&&<Btn onClick={()=>go(2)/* NEW: go(1)→go(2) */} bg="linear-gradient(135deg,#ffbf00,#ff9500)" sx={{marginTop:14}}>Continue {"\u2192"}</Btn>}
               </div>}
             </>}
           </div>
         </div>}
 
         {/* STRUGGLE */}
-        {step===1&&<div className="fade-up" key="s1">
+        {step===2&&<div className="fade-up" key="s1">{/* NEW: step index shifted from 1 to 2 */}
           <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>Explore: What happens when you change the code?</h2>
           <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:16}}>Experiment freely with variations. When you need guidance, the AI tutor is here to help.</p>
           <div style={{display:"flex",gap:5,marginBottom:12,flexWrap:"wrap"}}>
@@ -494,12 +805,12 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
             <span style={{fontSize:11,color:"#888"}}>Predict first, then verify</span>
           </div>
           <OutEl lines={sO} running={sR} color="#ffbf00"/>
-          <Btn onClick={()=>go(2)} bg="linear-gradient(135deg,#63b3ff,#3b82f6)" color="#fff" sx={{marginTop:16}}>I've explored enough {"\u2192"}</Btn>
-          <FloatingAI variant={vari}/>
+          <Btn onClick={()=>go(3)/* NEW: go(2)→go(3) */} bg="linear-gradient(135deg,#63b3ff,#3b82f6)" color="#fff" sx={{marginTop:16}}>I've explored enough {"\u2192"}</Btn>
+          <FloatingAI variant={vari} profile={orientAnswers}/>{/* NEW: pass learner profile */}
         </div>}
 
         {/* REPRESENT */}
-        {step===2&&<div className="fade-up" key="s2">
+        {step===3&&<div className="fade-up" key="s2">{/* NEW: step index shifted from 2 to 3 */}
           <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>Choose how you want to understand this</h2>
           <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:16}}>Choose the representation that resonates with how you think. Different learners benefit from different perspectives (Ainsworth, 2006).</p>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:20}}>
@@ -617,11 +928,11 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
             </div>
           </div>
 
-          {selR&&<Btn onClick={()=>go(3)} bg="linear-gradient(135deg,#a78bfa,#8b5cf6)" color="#fff" sx={{marginTop:4}}>Continue {"\u2192"} Reflect</Btn>}
+          {selR&&<Btn onClick={()=>go(4)/* NEW: go(3)→go(4) */} bg="linear-gradient(135deg,#a78bfa,#8b5cf6)" color="#fff" sx={{marginTop:4}}>Continue {"\u2192"} Reflect</Btn>}
         </div>}
 
         {/* REFLECT */}
-        {step===3&&<div className="fade-up" key="s3">
+        {step===4&&<div className="fade-up" key="s3">{/* NEW: step index shifted from 3 to 4 */}
           <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>Reflect: What just happened in your head?</h2>
           <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:18}}>Articulating your understanding in your own words deepens learning through self-explanation (Chi et al., 1989). After you write, the AI provides personalized feedback.</p>
           <div style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #a78bfa18",marginBottom:16}}>
@@ -648,8 +959,89 @@ input::placeholder,textarea::placeholder{color:#3a3a4a}`;
               </div>
             </div>
           </div>
-          {!done?<Btn disabled={!refl.trim()} bg="linear-gradient(135deg,#00ff88,#00bbff)" onClick={()=>setDone(true)}>Complete Lesson {"\u2728"}</Btn>
+          {!done?<Btn disabled={!refl.trim()} bg="linear-gradient(135deg,#00ff88,#00bbff)" onClick={()=>go(5)/* NEW: setDone(true)→go(5) to enter Extend */}>Complete Lesson {"\u2728"}</Btn>
           :<div className="fade-up" style={{background:"#00ff8806",border:"1px solid #00ff8820",borderRadius:13,padding:"24px",textAlign:"center"}}>
+            <div style={{fontSize:32,marginBottom:8}}>{"\u{1F389}"}</div>
+            <div style={{fontSize:18,fontWeight:700,marginBottom:6}}>Lesson Complete!</div>
+            <div style={{fontSize:12.5,color:"#777",lineHeight:1.8,maxWidth:440,margin:"0 auto"}}>You learned <strong style={{color:"#e0e0ea"}}>for loops</strong> through Predict {"\u2192"} Explore {"\u2192"} Represent {"\u2192"} Reflect.</div>
+            <div style={{marginTop:14,display:"flex",justifyContent:"center",gap:12}}>
+              <button onClick={()=>setView("home")} style={{padding:"7px 16px",borderRadius:7,background:"#ffffff05",border:"1px solid #1a1a2a",color:"#777",cursor:"pointer",fontSize:12}}>{"\u2190"} Curriculum</button>
+              <button style={{padding:"7px 16px",borderRadius:7,background:"#63b3ff0D",border:"1px solid #63b3ff20",color:"#63b3ff",cursor:"pointer",fontSize:12}}>Next: While Loops {"\u2192"}</button>
+            </div>
+          </div>}
+        </div>}
+
+        {/* NEW: EXTEND */}
+        {step===5&&<div className="fade-up" key="s_extend">
+          <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>{"\u{1F680}"} Extend: take what you learned somewhere new</h2>
+          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:18}}>Transfer happens when you can apply a mental model to code you've never seen. Let's test it, then see where this lesson sits in the bigger map.</p>
+
+          {/* (a) Transfer prediction */}
+          <div style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #00d9ff18",marginBottom:18}}>
+            <div style={{fontSize:12,fontWeight:600,color:"#00d9ff",marginBottom:12}}>{"\u{1F9EA}"} Transfer challenge: what will this new code print?</div>
+            <CodeEl code={"for i in range(5):\n    print(i * 2)"} accent="#00d9ff"/>
+            {!transferSubm?<div style={{marginTop:14}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:10}}>
+                {TRANSFER_PREDS.map(o=>(
+                  <button key={o.id} onClick={()=>{setTransferPred(o.id);setTransferUseCust(false);}} style={{
+                    padding:"11px 13px",borderRadius:9,textAlign:"left",
+                    border:transferPred===o.id&&!transferUseCust?"1.5px solid #00d9ff":"1.5px solid #1a1a2a",
+                    background:transferPred===o.id&&!transferUseCust?"#00d9ff0A":"#08080f",
+                    color:transferPred===o.id&&!transferUseCust?"#ccc":"#666",
+                    fontSize:12.5,cursor:"pointer",fontFamily:"'JetBrains Mono',monospace",
+                  }}>{o.t}</button>
+                ))}
+              </div>
+              <div style={{padding:"12px 14px",borderRadius:9,marginBottom:12,border:transferUseCust?"1.5px solid #00d9ff":"1.5px solid #1a1a2a",background:transferUseCust?"#00d9ff08":"#08080f"}}>
+                <div style={{fontSize:11,color:transferUseCust?"#00d9ff":"#555",marginBottom:6,fontWeight:600}}>{"\u{1F4AC}"} Or write your own prediction:</div>
+                <input value={transferCustom} onChange={e=>{setTransferCustom(e.target.value);setTransferUseCust(true);setTransferPred(null);}}
+                  onFocus={()=>{setTransferUseCust(true);setTransferPred(null);}}
+                  placeholder="What do you think will print?" style={{
+                    width:"100%",padding:"8px 10px",borderRadius:6,background:"#0b0b14",
+                    border:"1px solid #1a1a2a",color:"#e0e0ea",fontSize:12.5,fontFamily:"'DM Sans',sans-serif",
+                  }}/>
+              </div>
+              <Btn disabled={!transferPred&&!transferCustom.trim()} bg="linear-gradient(135deg,#00d9ff,#0099cc)" color="#fff"
+                onClick={()=>{setTransferSubm(true);runO(TRANSFER_OUT,setTransferOut,setTransferRun);}}>
+                {"\u25B6"} Submit & Run
+              </Btn>
+            </div>:<div style={{marginTop:14}}>
+              <OutEl lines={transferOut} running={transferRun} color="#00d9ff"/>
+              {!transferRun&&transferOut.length===TRANSFER_OUT.length&&<div className="fade-up" style={{marginTop:12,borderRadius:11,padding:"14px 16px",background:transferUseCust?"#00d9ff06":(TRANSFER_FB[transferPred]?.ok?"#00ff8806":"#ffbf0006"),border:transferUseCust?"1px solid #00d9ff20":(TRANSFER_FB[transferPred]?.ok?"1px solid #00ff8820":"1px solid #ffbf0020")}}>
+                {transferUseCust?<>
+                  <div style={{fontSize:13,fontWeight:700,marginBottom:5,color:"#00d9ff"}}>{"\u{1F4CA}"} Actual output: 0, 2, 4, 6, 8</div>
+                  <div style={{fontSize:12.5,color:"#999",lineHeight:1.7}}>You wrote: "{transferCustom}". The loop iterates over range(5) \u2014 which gives 0 through 4 \u2014 and prints each value times 2. Same model as the fruits loop, just with a numeric iterable instead of a list.</div>
+                </>:<>
+                  <div style={{fontSize:13,fontWeight:700,marginBottom:5,color:TRANSFER_FB[transferPred]?.ok?"#00ff88":"#ffbf00"}}>{TRANSFER_FB[transferPred]?.ok?"\u2728 ":"\u{1F914} "}{TRANSFER_FB[transferPred]?.ti}</div>
+                  <div style={{fontSize:12.5,color:"#999",lineHeight:1.7}}>{TRANSFER_FB[transferPred]?.bd}</div>
+                </>}
+              </div>}
+            </div>}
+          </div>
+
+          {/* (b) Connection map */}
+          <div style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #00d9ff18",marginBottom:18}}>
+            <div style={{fontSize:12,fontWeight:600,color:"#00d9ff",marginBottom:6}}>{"\u{1F517}"} Where this lesson fits</div>
+            <p style={{fontSize:11.5,color:"#888",marginBottom:14,lineHeight:1.5}}>On the left is what you've already built up. On the right is where for loops take you next.</p>
+            <ConnectionMap/>
+          </div>
+
+          {/* (c) Journal */}
+          <div style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #00d9ff18",marginBottom:18}}>
+            <div style={{fontSize:12,fontWeight:600,color:"#00d9ff",marginBottom:6}}>{"\u{1F4D3}"} Learning journal (optional)</div>
+            <p style={{fontSize:11.5,color:"#888",marginBottom:10,lineHeight:1.5}}>Leave blank if nothing comes to mind. This is just a scratchpad for you.</p>
+            <textarea value={journalEntry} onChange={e=>setJournalEntry(e.target.value)}
+              placeholder="Questions you still want to explore, connections you noticed, things you want to revisit..."
+              style={{
+                width:"100%",minHeight:90,padding:"10px 12px",borderRadius:7,
+                background:"#08080f",border:"1.5px solid #00d9ff18",color:"#e0e0ea",
+                fontSize:12.5,lineHeight:1.7,resize:"vertical",fontFamily:"'DM Sans',sans-serif",
+              }}/>
+          </div>
+
+          {!done?<Btn bg="linear-gradient(135deg,#00d9ff,#00bbff)" color="#fff" onClick={()=>setDone(true)}>
+            Complete this lesson {"\u{1F389}"}
+          </Btn>:<div className="fade-up" style={{background:"#00ff8806",border:"1px solid #00ff8820",borderRadius:13,padding:"24px",textAlign:"center"}}>
             <div style={{fontSize:32,marginBottom:8}}>{"\u{1F389}"}</div>
             <div style={{fontSize:18,fontWeight:700,marginBottom:6}}>Lesson Complete!</div>
             <div style={{fontSize:12.5,color:"#777",lineHeight:1.8,maxWidth:440,margin:"0 auto"}}>You learned <strong style={{color:"#e0e0ea"}}>for loops</strong> through Predict {"\u2192"} Explore {"\u2192"} Represent {"\u2192"} Reflect.</div>
