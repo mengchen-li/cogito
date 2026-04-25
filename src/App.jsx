@@ -1,1057 +1,518 @@
 import { useState, useEffect, useRef } from "react";
+import Demo from "./Demo";
 
-const API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-20250514";
+// =============================================================================
+// SHARED GLOBAL CSS (landing + demo, exported for Demo.jsx to import)
+// =============================================================================
+export const GLOBAL_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-function getApiKey() {
-  try { return localStorage.getItem("cogito_api_key") || ""; } catch { return ""; }
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#050510;--s1:#0c0c1e;--s2:#111128;--s3:#08080f;--bd:#1e1e40;
+  --tx:#f0f0f8;--tx2:#d4d4e8;--dm:#9898b8;--muted:#6a6a88;
+  --g1:#00e87b;--g2:#00c4f0;--wm:#f5c842;--pk:#ff6b9d;--pp:#a78bfa;--cy:#00d9ff;
+  --fd:'Instrument Serif',Georgia,serif;
+  --fb:'Sora',sans-serif;
+  --fm:'JetBrains Mono',monospace;
 }
-function setApiKey(k) {
-  try { localStorage.setItem("cogito_api_key", k); } catch {}
+html{scroll-behavior:smooth}
+html,body{background:var(--bg);color:var(--tx);font-family:var(--fb);-webkit-font-smoothing:antialiased}
+body{overflow-x:hidden}
+button{font-family:var(--fb)}
+input,textarea{font-family:var(--fb)}
+textarea:focus,button:focus,input:focus{outline:none}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#1e1e40;border-radius:4px}::-webkit-scrollbar-thumb:hover{background:#2a2a55}
+input::placeholder,textarea::placeholder{color:#444466}
+
+/* LANDING */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 44px;background:rgba(5,5,16,.8);backdrop-filter:blur(20px);border-bottom:1px solid rgba(30,30,64,.35)}
+.nl{display:flex;align-items:center;text-decoration:none;cursor:pointer;background:none;border:none}
+.nl svg{width:30px;height:30px}.nl span{font-size:17px;font-weight:700;color:var(--tx);letter-spacing:-.03em;margin-left:-1px}
+.nr{display:flex;gap:24px;align-items:center}
+.nr a,.nr button.nav-link{color:var(--dm);text-decoration:none;font-size:13px;font-weight:500;transition:color .3s;background:none;border:none;cursor:pointer;font-family:var(--fb)}
+.nr a:hover,.nr button.nav-link:hover{color:var(--tx)}
+.nr .cta{background:linear-gradient(135deg,var(--g1),var(--g2));color:#000;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer;border:none}
+.nr .cta:hover{box-shadow:0 4px 20px rgba(0,232,123,.3)}
+
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 24px 50px;position:relative;overflow:hidden}
+.hero-orbs{position:absolute;inset:0;pointer-events:none}
+.hero-orbs div{position:absolute;border-radius:50%;filter:blur(100px)}
+.ho1{width:600px;height:600px;background:rgba(0,232,123,.06);top:-15%;left:15%;animation:drift 25s ease-in-out infinite}
+.ho2{width:450px;height:450px;background:rgba(0,196,240,.05);bottom:5%;right:10%;animation:drift 25s ease-in-out infinite reverse}
+@keyframes drift{0%,100%{transform:translate(0,0)}33%{transform:translate(50px,-30px)}66%{transform:translate(-30px,40px)}}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:7px 18px;border-radius:100px;background:rgba(0,232,123,.06);border:1px solid rgba(0,232,123,.15);font-size:11px;color:var(--g1);font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:28px;animation:fu .7s ease both}
+.hero-badge i{width:6px;height:6px;border-radius:50%;background:var(--g1);display:inline-block;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.hero h1{font-family:var(--fd);font-size:clamp(48px,8.5vw,96px);font-weight:400;line-height:1.02;margin-bottom:22px;animation:fu .7s ease .08s both}
+.hero h1 em{font-style:italic;background:linear-gradient(135deg,var(--g1),var(--g2),var(--wm));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-p{font-size:clamp(15px,1.8vw,18px);color:var(--tx2);max-width:520px;line-height:1.75;margin-bottom:36px;font-weight:400;animation:fu .7s ease .16s both}
+.hero-btns{display:flex;gap:12px;animation:fu .7s ease .24s both}
+.bp{background:linear-gradient(135deg,var(--g1),var(--g2));color:#000;border:none;border-radius:10px;padding:14px 28px;font-family:var(--fb);font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;transition:all .3s;display:inline-flex;align-items:center;gap:6px}
+.bp:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,232,123,.3)}
+.bs2{background:transparent;color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:14px 28px;font-family:var(--fb);font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;transition:all .3s}
+.bs2:hover{border-color:#555;background:rgba(255,255,255,.02)}
+@keyframes fu{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+.mq-w{padding:36px 0;border-top:1px solid var(--bd);border-bottom:1px solid var(--bd);overflow:hidden;position:relative}
+.mq-w::before,.mq-w::after{content:'';position:absolute;top:0;bottom:0;width:100px;z-index:2}
+.mq-w::before{left:0;background:linear-gradient(to right,var(--bg),transparent)}
+.mq-w::after{right:0;background:linear-gradient(to left,var(--bg),transparent)}
+.mq-label{text-align:center;font-size:11px;color:var(--g1);letter-spacing:.18em;text-transform:uppercase;margin-bottom:12px;font-weight:700}
+.mq{display:flex;gap:10px;width:max-content}
+.mq-a{animation:mql 50s linear infinite}.mq-b{animation:mqr 55s linear infinite;margin-top:10px}
+@keyframes mql{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes mqr{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}
+.mq span{padding:7px 16px;border-radius:100px;font-size:12px;white-space:nowrap;border:1px solid rgba(255,255,255,.06);color:var(--dm);background:rgba(255,255,255,.02);transition:all .3s}
+.mq span:hover{color:var(--tx);background:rgba(0,232,123,.06);border-color:rgba(0,232,123,.2);transform:scale(1.06)}
+
+section.lp-section{padding:100px 48px;max-width:1200px;margin:0 auto}
+.sl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--g1);font-weight:700;margin-bottom:10px}
+.st{font-family:var(--fd);font-size:clamp(30px,4.2vw,48px);margin-bottom:14px;line-height:1.1;font-weight:400;color:var(--tx)}
+.st em{font-style:italic;background:linear-gradient(135deg,var(--g1),var(--g2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sd{color:var(--tx2);font-size:15px;max-width:540px;line-height:1.75}
+
+.why-sec{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start;padding:100px 48px;max-width:1200px;margin:0 auto;border-top:1px solid var(--bd);border-bottom:1px solid var(--bd)}
+.why-copy .sl{margin-bottom:10px}.why-copy .st{margin-bottom:14px}.why-copy .sd{margin-bottom:20px}
+.why-points{display:flex;flex-direction:column;gap:12px}
+.wp{display:flex;gap:14px;align-items:flex-start;padding:16px 18px;border-radius:12px;background:var(--s1);border:1px solid var(--bd);transition:all .3s}
+.wp:hover{border-color:rgba(0,232,123,.2);transform:translateX(4px)}
+.wp-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
+.wp h4{font-size:14px;font-weight:600;color:var(--tx);margin-bottom:2px}
+.wp p{font-size:12.5px;color:var(--dm);line-height:1.5}
+
+.ph-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:44px}
+.ph{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:26px 20px;transition:all .35s;position:relative;overflow:hidden}
+.ph::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--g1),var(--g2));transform:scaleX(0);transition:transform .35s;transform-origin:left}
+.ph:hover{border-color:rgba(0,232,123,.25);background:var(--s2)}.ph:hover::after{transform:scaleX(1)}
+.ph-n{font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--g2);text-transform:uppercase;font-family:var(--fm);margin-bottom:10px}
+.ph h3{font-size:16px;font-weight:600;margin-bottom:5px;color:var(--tx)}
+.ph p{font-size:12.5px;color:var(--dm);line-height:1.6}
+
+.feat{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;margin-bottom:72px}
+.feat:nth-child(even){direction:rtl}.feat:nth-child(even)>*{direction:ltr}
+.feat-tag{display:inline-block;padding:4px 12px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+.ft1{background:rgba(255,107,157,.08);color:var(--pk)}.ft2{background:rgba(0,232,123,.08);color:var(--g1)}.ft3{background:rgba(245,200,66,.08);color:var(--wm)}.ft4{background:rgba(0,196,240,.08);color:var(--g2)}.ft5{background:rgba(167,139,250,.08);color:var(--pp)}.ft6{background:rgba(0,217,255,.08);color:#00d9ff}
+.feat-h{font-family:var(--fd);font-size:clamp(24px,3vw,32px);margin-bottom:10px;font-weight:400;line-height:1.15;color:var(--tx)}
+.feat-p{color:var(--tx2);font-size:14px;line-height:1.75}
+.feat-vis{background:var(--s1);border:1px solid var(--bd);border-radius:16px;padding:28px;min-height:220px;display:flex;align-items:center;justify-content:center;transition:all .4s;overflow:hidden}
+.feat-vis:hover{border-color:rgba(0,232,123,.15)}
+
+.o-pills{display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
+.o-pill{padding:9px 16px;border-radius:10px;background:var(--s2);border:1px solid var(--bd);font-size:12px;color:var(--dm);transition:all .4s;cursor:default}
+.o-pill:hover{transform:scale(1.06);border-color:var(--g1);color:var(--g1)}
+.o-pill:nth-child(odd){border-color:rgba(0,232,123,.12);color:#7ec8a0;background:rgba(0,232,123,.03)}
+.o-pill:nth-child(even){border-color:rgba(0,196,240,.12);color:#7ab8d0;background:rgba(0,196,240,.03)}
+.o-pill:nth-child(3n){border-color:rgba(245,200,66,.12);color:#c8b870;background:rgba(245,200,66,.02)}
+
+.pr-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.pr-c{padding:14px;border-radius:10px;background:var(--s2);border:1px solid var(--bd);font-size:12px;color:var(--dm);line-height:1.5;transition:all .3s}
+.pr-c.hi{border-color:var(--g1);color:var(--g1);background:rgba(0,232,123,.04)}
+.pr-c:hover{border-color:rgba(0,232,123,.25)}
+.pr-c strong{display:block;color:var(--tx);font-size:12.5px;margin-bottom:3px}
+
+.inv-mock{width:100%;display:flex;flex-direction:column;gap:10px}
+.inv-row{display:flex;gap:8px;align-items:center}
+.inv-lbl{font-size:11px;color:var(--dm);width:70px;flex-shrink:0;text-align:right}
+.inv-bar{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.inv-btn{padding:7px 14px;border-radius:8px;background:var(--s2);border:1px solid var(--bd);font-size:11.5px;color:var(--dm);transition:all .3s;cursor:default}
+.inv-btn.a{border-color:rgba(245,200,66,.25);color:var(--wm);background:rgba(245,200,66,.04)}
+.inv-btn:hover{border-color:var(--wm);color:var(--wm)}
+
+.rp-g{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;width:100%}
+.rp-i{padding:14px 10px;border-radius:10px;background:var(--s2);border:1px solid var(--bd);text-align:center;transition:all .3s;cursor:default}
+.rp-i:hover{border-color:rgba(0,232,123,.2);transform:translateY(-2px)}
+.rp-i .ri{font-size:18px;margin-bottom:4px;display:block}
+.rp-i .rn{font-size:11px;font-weight:600;color:var(--tx2)}
+
+.ref-mock{width:100%;display:flex;flex-direction:column;gap:10px}
+.ref-box{background:#08080f;border:1px solid var(--bd);border-radius:10px;padding:14px;font-size:12.5px;color:var(--tx2);line-height:1.6;font-style:italic}
+.ref-ai{background:rgba(167,139,250,.04);border:1px solid rgba(167,139,250,.15);border-radius:10px;padding:14px;font-size:12.5px;color:var(--pp);line-height:1.6}
+
+.ext-mock{width:100%;text-align:center}
+.ext-nodes{display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap}
+.ext-n{padding:8px 14px;border-radius:8px;font-size:11px;font-weight:600;transition:all .3s}
+.ext-n.done{background:rgba(0,232,123,.06);border:1px solid rgba(0,232,123,.2);color:var(--g1)}
+.ext-n.now{background:linear-gradient(135deg,var(--g1),var(--g2));color:#000;border:none;transform:scale(1.08)}
+.ext-n.next{background:var(--s2);border:1px solid var(--bd);color:var(--dm)}
+.ext-arr{color:#333;font-size:14px}
+
+.ways{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:40px}
+.way{background:var(--s1);border:1px solid var(--bd);border-radius:16px;padding:32px 26px;transition:all .4s;transform-style:preserve-3d}
+.way:hover{border-color:rgba(0,232,123,.2)}
+.way .tag{display:inline-block;padding:4px 12px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px}
+.way:nth-child(1) .tag{background:rgba(0,232,123,.08);color:var(--g1)}
+.way:nth-child(2) .tag{background:rgba(245,200,66,.08);color:var(--wm)}
+.way h3{font-size:18px;font-weight:600;margin-bottom:6px;color:var(--tx)}
+.way p{color:var(--tx2);font-size:13.5px;line-height:1.7}
+
+.theory-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:40px}
+.th-card{padding:20px;border-radius:12px;background:var(--s1);border:1px solid var(--bd);transition:all .4s;transform-style:preserve-3d}
+.th-card:hover{border-color:rgba(0,232,123,.2)}
+.th-name{font-size:14px;font-weight:600;color:var(--tx);margin-bottom:4px}
+.th-cite{font-size:11px;color:var(--g1);font-family:var(--fm);margin-bottom:6px}
+.th-desc{font-size:12.5px;color:var(--dm);line-height:1.6}
+.th-more{margin-top:20px;text-align:center;font-size:13px;color:var(--dm);font-style:italic}
+
+.aud-list{display:flex;flex-direction:column;gap:14px;margin-top:40px;max-width:700px}
+.al{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:24px 24px;display:flex;gap:18px;align-items:flex-start;transition:all .4s;transform-style:preserve-3d}
+.al:hover{border-color:rgba(0,232,123,.2);transform:translateX(6px)}
+.al-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:6px}
+.al h3{font-size:16px;font-weight:600;margin-bottom:3px;color:var(--tx)}
+.al p{color:var(--tx2);font-size:13px;line-height:1.65}
+
+.cta-s{text-align:center;padding:120px 48px;max-width:1200px;margin:0 auto;position:relative}
+.cta-s::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(0,232,123,.05),transparent 60%);pointer-events:none}
+.cta-s h2{font-family:var(--fd);font-size:clamp(34px,5vw,56px);margin-bottom:14px;font-weight:400}
+.cta-s h2 em{font-style:italic;background:linear-gradient(135deg,var(--g1),var(--g2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.cta-s>p{color:var(--tx2);font-size:16px;margin-bottom:28px}
+.cta-btns{display:flex;gap:12px;justify-content:center}
+footer.lp-footer{padding:32px 48px;text-align:center;border-top:1px solid var(--bd);max-width:1200px;margin:0 auto}
+footer.lp-footer p{color:#555;font-size:11px}
+
+.rv{opacity:0;transform:translateY(24px);transition:all .6s cubic-bezier(.4,0,.2,1)}
+.rv.vis{opacity:1;transform:translateY(0)}
+.d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}
+
+.cs-ov{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;background:rgba(5,5,16,.82);backdrop-filter:blur(14px);padding:24px;animation:csFade .3s ease both}
+.cs-ov.on{display:flex}@keyframes csFade{from{opacity:0}to{opacity:1}}
+.cs-m{background:linear-gradient(180deg,#0c0c1e,#080818);border:1px solid rgba(0,232,123,.18);border-radius:20px;padding:42px 38px 34px;max-width:460px;width:100%;position:relative;animation:csRise .45s cubic-bezier(.22,1,.36,1) both;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 80px rgba(0,232,123,.06)}
+@keyframes csRise{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+.cs-x{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;background:transparent;border:1px solid transparent;color:var(--dm);cursor:pointer;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.cs-x:hover{border-color:var(--bd);color:var(--tx);background:rgba(255,255,255,.03)}
+.cs-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:100px;background:rgba(245,200,66,.08);border:1px solid rgba(245,200,66,.22);font-size:10.5px;color:var(--wm);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:22px}
+.cs-tag i{width:5px;height:5px;border-radius:50%;background:var(--wm);animation:pulse 2s infinite}
+.cs-h{font-family:var(--fd);font-size:32px;font-weight:400;line-height:1.15;margin-bottom:14px;color:var(--tx)}
+.cs-h em{font-style:italic;background:linear-gradient(135deg,var(--g1),var(--g2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.cs-p{color:var(--tx2);font-size:14px;line-height:1.7;margin-bottom:26px}
+.cs-btns{display:flex;flex-direction:column;gap:10px}
+.cs-btns .bp,.cs-btns .bs2{width:100%;text-align:center;justify-content:center}
+
+@media(max-width:900px){
+  nav{padding:12px 20px}.nr a:not(.cta),.nr button.nav-link:not(.cta){display:none}
+  section.lp-section,.why-sec{padding:80px 20px}
+  .ph-grid,.ways,.theory-grid{grid-template-columns:1fr 1fr}
+  .feat,.why-sec{grid-template-columns:1fr;gap:28px}
+  .feat:nth-child(even){direction:ltr}
 }
+@media(max-width:600px){.ph-grid,.ways,.theory-grid{grid-template-columns:1fr}.pr-cards,.rp-g{grid-template-columns:1fr 1fr}}
 
-async function askAI(sys, msgs) {
-  const key = getApiKey();
-  if (!key) return "Please set your API key first (click the gear icon in the top right).";
-  try {
-    const r = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": key,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      body: JSON.stringify({ model: MODEL, max_tokens: 800, system: sys, messages: msgs }),
-    });
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({}));
-      if (r.status === 401) return "Invalid API key. Please check your key in settings (gear icon).";
-      return `API error: ${err.error?.message || r.statusText}`;
-    }
-    const d = await r.json();
-    return d.content?.[0]?.text || "Couldn't generate a response.";
-  } catch (e) { return "AI unavailable: " + e.message; }
-}
-
-// ===== DATA =====
-const CURRIC = [
-  { mod: "Module 1: Foundations", wk: "Weeks 1\u20133", ls: [
-    { t: "Variables & Data Types", s: "done", d: "Numbers, strings, booleans \u2014 how Python stores information" },
-    { t: "Operators & Expressions", s: "done", d: "Math, comparison, and logical operations" },
-    { t: "Lists, Tuples & Strings", s: "done", d: "Ordered collections and text manipulation" },
-  ]},
-  { mod: "Module 2: Control Flow", wk: "Weeks 4\u20136", ls: [
-    { t: "For Loops", s: "cur", d: "Iterating over collections with for...in" },
-    { t: "While Loops & Loop Control", s: "lock", d: "Conditional repetition, break, continue" },
-    { t: "Conditionals & Branching", s: "lock", d: "if/elif/else decision trees" },
-  ]},
-  { mod: "Module 3: Functions & Structure", wk: "Weeks 7\u20139", ls: [
-    { t: "Defining Functions", s: "lock", d: "Packaging reusable logic with def" },
-    { t: "Parameters, Returns & Scope", s: "lock", d: "Inputs, outputs, and variable visibility" },
-    { t: "Error Handling & Debugging", s: "lock", d: "try/except, reading tracebacks, debugging" },
-  ]},
-  { mod: "Module 4: Data & Projects", wk: "Weeks 10\u201312", ls: [
-    { t: "Dictionaries & Sets", s: "lock", d: "Key-value pairs and unique collections" },
-    { t: "File I/O & Data Processing", s: "lock", d: "Reading, writing, and transforming real data" },
-    { t: "Capstone Project", s: "lock", d: "Build a complete program combining all concepts" },
-  ]},
-];
-
-// NEW: added "orient" and "extend" around the original four steps
-const STEPS = ["orient","predict","struggle","represent","reflect","extend"];
-const SM = {
-  orient:{e:"\u{1F9ED}",l:"Orient",c:"#ff6b9d",th:"Learner Profile"}, // NEW
-  predict:{e:"\u{1F52E}",l:"Predict",c:"#00ff88",th:"Productive Failure"},
-  struggle:{e:"\u{1F9E9}",l:"Explore",c:"#ffbf00",th:"Active Learning"},
-  represent:{e:"\u{1F3A8}",l:"Understand",c:"#63b3ff",th:"Multiple Representations"},
-  reflect:{e:"\u{1F4AD}",l:"Reflect",c:"#a78bfa",th:"Metacognition"},
-  extend:{e:"\u{1F680}",l:"Extend",c:"#00d9ff",th:"Transfer & Connection"}, // NEW
-};
-
-// NEW: Orient phase questions (reorganized, all in English, includes AI tone preference)
-const ORIENT_Q = [
-  {
-    key: "experience",
-    q: "How much programming have you done before?",
-    sub: "Be honest \u2014 this shapes how I explain things.",
-    multi: false,
-    opts: [
-      "Absolute beginner \u2014 never written code",
-      "Dabbled a bit \u2014 tried a tutorial or two",
-      "Know the basics \u2014 variables, loops, conditionals",
-      "Built small projects on my own",
-      "Comfortable with mid-sized projects",
-      "Professional developer / researcher",
-    ],
-  },
-  {
-    key: "languages",
-    q: "Which languages or tools have you used before? (multi-select)",
-    sub: "Even a little exposure counts.",
-    multi: true,
-    opts: [
-      "Python",
-      "JavaScript / TypeScript",
-      "Java / Kotlin",
-      "C / C++ / Rust",
-      "R / MATLAB / Julia",
-      "SQL",
-      "HTML / CSS",
-      "Excel formulas / Google Sheets",
-      "None yet",
-    ],
-  },
-  {
-    key: "purpose",
-    q: "What are you hoping to use Python for?",
-    sub: "This helps me pick examples that actually matter to you.",
-    multi: false,
-    opts: [
-      "Data analysis or research",
-      "Automating boring tasks",
-      "Building web apps or tools",
-      "Machine learning / AI",
-      "School or coursework",
-      "Career change into tech",
-      "Just curious, no specific goal",
-    ],
-  },
-  {
-    key: "tone",
-    q: "How would you like me to explain things?",
-    sub: "Pick the vibe that makes you want to keep learning. I'll actually adjust my tone based on this.",
-    multi: false,
-    opts: [
-      "Concise and direct \u2014 just the essentials",
-      "Step-by-step with lots of worked examples",
-      "Socratic \u2014 ask me questions, let me figure it out",
-      "Warm and encouraging \u2014 celebrate small wins",
-      "Technical and precise \u2014 don't dumb it down",
-      "Metaphors and analogies \u2014 relate it to real life",
-    ],
-  },
-  {
-    key: "approach",
-    q: "When a new concept confuses you, what helps most?",
-    sub: "Your brain's preferred on-ramp.",
-    multi: false,
-    opts: [
-      "Seeing a worked example first",
-      "Trying it myself and breaking it",
-      "Reading docs or a textbook explanation",
-      "Watching someone walk through it",
-      "Drawing it out on paper",
-      "Predicting first, then checking",
-    ],
-  },
-  {
-    key: "stuck",
-    q: "When you get stuck, what do you usually do first?",
-    sub: "There's no wrong answer \u2014 this tells me when to jump in.",
-    multi: false,
-    opts: [
-      "Keep poking at it until it works",
-      "Search online / Stack Overflow",
-      "Ask an AI assistant",
-      "Talk it out with someone",
-      "Step away, come back later",
-      "Skip ahead and circle back",
-    ],
-  },
-];
-
-// NEW: Map tone preference to an instruction fragment for AI system prompts
-const TONE_INSTRUCTIONS = {
-  "Concise and direct \u2014 just the essentials": "Be concise and direct. Skip pleasantries. Give the essential answer in 2-3 tight sentences.",
-  "Step-by-step with lots of worked examples": "Explain step-by-step with concrete worked examples. Show intermediate states. Number the steps.",
-  "Socratic \u2014 ask me questions, let me figure it out": "Use a Socratic style. Instead of giving answers directly, ask one guiding question that helps the learner discover the answer themselves. Keep it short.",
-  "Warm and encouraging \u2014 celebrate small wins": "Be warm and encouraging. Acknowledge effort, celebrate small wins, and keep the tone friendly.",
-  "Technical and precise \u2014 don't dumb it down": "Use precise technical language. Don't over-simplify. Assume the learner can handle correct terminology.",
-  "Metaphors and analogies \u2014 relate it to real life": "Lead with a vivid real-world metaphor or analogy before explaining the technical detail.",
-};
-
-// NEW: Build an AI system-prompt fragment from the learner profile
-function buildProfileContext(answers){
-  if(!answers||Object.keys(answers).length===0) return "";
-  const parts = [];
-  const exp = answers.experience?.selected;
-  if(exp) parts.push(`Experience level: ${exp}.`);
-  const langs = answers.languages?.selected;
-  if(Array.isArray(langs)&&langs.length) parts.push(`Has used: ${langs.join(", ")}.`);
-  const purpose = answers.purpose?.selected;
-  if(purpose) parts.push(`Learning Python for: ${purpose}.`);
-  const tone = answers.tone?.selected;
-  const toneInstr = tone ? (TONE_INSTRUCTIONS[tone] || "") : "";
-  const approach = answers.approach?.selected;
-  if(approach) parts.push(`Prefers: ${approach}.`);
-  const customs = Object.entries(answers).map(([k,v])=>v?.custom?`${k}: ${v.custom}`:null).filter(Boolean);
-  if(customs.length) parts.push(`Self-described: ${customs.join("; ")}.`);
-  const profile = parts.length ? `LEARNER PROFILE: ${parts.join(" ")}` : "";
-  return [profile, toneInstr].filter(Boolean).join("\n\n");
-}
-
-// NEW: Transfer prediction data for Extend phase
-const TRANSFER_PREDS = [
-  {id:"a",t:"0 1 2 3 4"},
-  {id:"b",t:"0 2 4 6 8"},
-  {id:"c",t:"2 4 6 8 10"},
-  {id:"d",t:"0 5 10 15 20"},
-];
-const TRANSFER_CORRECT = "b"; // NEW
-const TRANSFER_OUT = ["0","2","4","6","8"]; // NEW
-const TRANSFER_FB = {
-  a:{ok:false,ti:"Close \u2014 look at the expression inside print() again",bd:"You might have missed the i * 2 part. range(5) does produce 0 through 4, but print outputs i * 2, not i itself."},
-  b:{ok:true,ti:"Exactly right!",bd:"range(5) generates 0 to 4, and each value gets multiplied by 2 \u2014 giving 0, 2, 4, 6, 8. You've transferred the for-loop model to a new kind of iterable."},
-  c:{ok:false,ti:"Almost \u2014 the starting point is off",bd:"range(5) starts from 0, not from 1. So the first output is 0 * 2 = 0, not 2. The rest of your pattern is correct."},
-  d:{ok:false,ti:"This mixes up what range(5) means",bd:"range(5) means 'produce five numbers starting from 0' (so 0, 1, 2, 3, 4). It does not mean 'step by 5'. To step by 5, you'd write range(0, n, 5)."},
-};
-
-const PREDS = [
-  {id:"correct",t:"Prints each fruit on its own line:\napple\nbanana\ncherry"},
-  {id:"list",t:'Prints the whole list:\n["apple","banana","cherry"]'},
-  {id:"last",t:"Only prints the last item:\ncherry"},
-  {id:"error",t:"Throws an error because\n\'fruit\' is not defined"},
-];
-const PFB = {
-  correct:{ok:true,ti:"Nice! Your prediction was correct.",bd:"Your intuition is solid \u2014 a for loop takes each element one at a time. Even correct predictions benefit from deeper exploration."},
-  list:{ok:false,ti:"Not quite \u2014 but a great learning moment.",bd:"You expected print to output the entire list. That would happen with print(fruits). But a for loop unpacks the list and processes items one by one."},
-  last:{ok:false,ti:"Interesting prediction \u2014 let's unpack it.",bd:"You thought only the last item would print. Actually, in each iteration 'fruit' gets reassigned AND print() runs each time. The loop executes the entire indented block repeatedly."},
-  error:{ok:false,ti:"Reasonable concern \u2014 but Python handles this.",bd:"'for fruit in fruits:' itself defines the variable. Each iteration, Python assigns the next element to 'fruit' automatically."},
-};
-
-const VARS = [
-  {k:"orig",l:"Original",code:'fruits = ["apple", "banana", "cherry"]\nfor fruit in fruits:\n    print(fruit)',out:["apple","banana","cherry"]},
-  {k:"idx",l:"\u{1F522} With Index",code:'fruits = ["apple", "banana", "cherry"]\nfor i, fruit in enumerate(fruits):\n    print(f"{i}: {fruit}")',out:["0: apple","1: banana","2: cherry"]},
-  {k:"flt",l:"\u{1F352} Skip Cherry",code:'fruits = ["apple", "banana", "cherry"]\nfor fruit in fruits:\n    if fruit != "cherry":\n        print(fruit)',out:["apple","banana"]},
-  {k:"rev",l:"\u{1F504} Reverse",code:'fruits = ["apple", "banana", "cherry"]\nfor fruit in reversed(fruits):\n    print(fruit)',out:["cherry","banana","apple"]},
-];
-
-const FU="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap";
-
-// ===== COMPONENTS =====
-function CodeEl({code,accent="#00ff88"}){
-  const kw=["for","in","if","def","return","while","else","elif","not","and","or"];
-  const bi=["print","enumerate","reversed","range","len"];
-  function hl(ln){const ps=[];let b="",iS=false,sc="";for(let i=0;i<ln.length;i++){const c=ln[i];if(iS){b+=c;if(c===sc){ps.push({t:b,k:"s"});b="";iS=false;}}else if(c==='"'||c==="'"){if(b){ps.push({t:b,k:"c"});b="";}b=c;iS=true;sc=c;}else b+=c;}if(b)ps.push({t:b,k:iS?"s":"c"});return ps.map((p,pi)=>{if(p.k==="s")return <span key={pi} style={{color:"#c3e88d"}}>{p.t}</span>;return p.t.split(/\b/).map((tok,ti)=>{if(kw.includes(tok))return <span key={`${pi}-${ti}`} style={{color:"#c792ea"}}>{tok}</span>;if(bi.includes(tok))return <span key={`${pi}-${ti}`} style={{color:"#82aaff"}}>{tok}</span>;return <span key={`${pi}-${ti}`}>{tok}</span>;});});}
-  return(
-    <div style={{background:"#0d1117",borderRadius:12,overflow:"hidden",border:`1px solid ${accent}20`}}>
-      <div style={{padding:"8px 14px",borderBottom:"1px solid #1a1f2e",display:"flex",alignItems:"center",gap:7}}>
-        {["#ff5f57","#febc2e","#28c840"].map((c,i)=><span key={i} style={{width:10,height:10,borderRadius:"50%",background:c,display:"inline-block"}}/>)}
-        <span style={{fontSize:11,color:"#888",marginLeft:6,fontFamily:"'JetBrains Mono',monospace"}}>lesson.py</span>
-      </div>
-      <pre style={{padding:"16px 18px",margin:0,fontFamily:"'JetBrains Mono',monospace",fontSize:13,lineHeight:2,color:"#d4d4d4",overflowX:"auto"}}>
-        {code.split("\n").map((l,i)=><div key={i}><span style={{color:"#667",marginRight:14,userSelect:"none",display:"inline-block",width:18,textAlign:"right"}}>{i+1}</span>{hl(l)}</div>)}
-      </pre>
-    </div>
-  );
-}
-
-function OutEl({lines,running,color="#00ff88"}){return(
-  <div style={{background:"#0a0a0f",borderRadius:10,padding:"12px 16px",border:"1px solid #1a1a2a",minHeight:46}}>
-    <div style={{fontSize:10,color:"#888",marginBottom:5,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:"'JetBrains Mono',monospace"}}>output</div>
-    <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:13,lineHeight:1.9}}>
-      {lines.map((l,i)=><div key={i} style={{color,animation:"slideIn .25s ease-out"}}>{l}</div>)}
-      {running&&<span style={{color,animation:"blink 1s step-end infinite"}}>{"\u2588"}</span>}
-      {!running&&lines.length===0&&<span style={{color:"#667",fontStyle:"italic"}}>Waiting...</span>}
-    </div>
-  </div>
-);}
-
-function Btn({children,onClick,disabled,bg,color="#08080f",sx={}}){
-  return <button onClick={onClick} disabled={disabled} style={{padding:"10px 24px",borderRadius:10,border:"none",background:disabled?"#1a1a2a":bg,color:disabled?"#444":color,fontSize:13,fontWeight:700,cursor:disabled?"default":"pointer",transition:"all .2s",...sx}}>{children}</button>;
-}
-
-// Trace Table
-function TraceTable({step:aS}){
-  const rows=[
-    {it:"Before loop",fruits:'["apple","banana","cherry"]',fruit:"\u2014",act:"\u2014",out:""},
-    {it:"Iteration 1",fruits:'["apple","banana","cherry"]',fruit:'"apple"',act:'print("apple")',out:"apple"},
-    {it:"Iteration 2",fruits:'["apple","banana","cherry"]',fruit:'"banana"',act:'print("banana")',out:"apple\nbanana"},
-    {it:"Iteration 3",fruits:'["apple","banana","cherry"]',fruit:'"cherry"',act:'print("cherry")',out:"apple\nbanana\ncherry"},
-    {it:"After loop",fruits:'["apple","banana","cherry"]',fruit:'"cherry" (last)',act:"\u2014 (ended)",out:"apple\nbanana\ncherry"},
-  ];
-  const hd=["Step","fruits","fruit","Action","Output"];
-  const ks=["it","fruits","fruit","act","out"];
-  return(<div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:"'JetBrains Mono',monospace",fontSize:11.5}}>
-    <thead><tr>{hd.map((h,i)=><th key={i} style={{padding:"10px 12px",textAlign:"left",color:"#63b3ff",borderBottom:"2px solid #63b3ff30",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",whiteSpace:"nowrap"}}>{h}</th>)}</tr></thead>
-    <tbody>{rows.map((row,ri)=>{const vis=ri<=aS+1,act=ri===aS+1&&aS<4;if(!vis)return null;return(
-      <tr key={ri} style={{animation:"slideIn .3s ease-out",background:act?"#63b3ff08":"transparent"}}>
-        {ks.map((k,ki)=><td key={ki} style={{padding:"10px 12px",borderBottom:"1px solid #141420",color:act?(ki===2?"#63b3ff":ki===3?"#82aaff":"#bbb"):"#666",fontWeight:act?600:400,whiteSpace:k==="out"?"pre-wrap":"nowrap",verticalAlign:"top"}}>{row[k]}</td>)}
-      </tr>);})}</tbody>
-  </table></div>);
-}
-
-// ★ IMPROVED Mind Map - clear top-down hierarchy with labeled arrows
-function MindMap(){
-  // Layout: top-down tree. Root at top, branches below.
-  const w=600, h=400;
-  // Nodes
-  const nodes = [
-    // Level 0 - root
-    { x:300, y:40, label:"for fruit in fruits:", col:"#63b3ff", w:200, h:34, fontSize:13, bold:true },
-    // Level 1 - three main parts
-    { x:100, y:140, label:"The Collection", col:"#00ff88", w:140, h:30, fontSize:11, bold:true },
-    { x:300, y:140, label:"The Loop Variable", col:"#a78bfa", w:160, h:30, fontSize:11, bold:true },
-    { x:500, y:140, label:"The Loop Body", col:"#ffbf00", w:140, h:30, fontSize:11, bold:true },
-    // Level 2 - details
-    { x:100, y:220, label:'fruits = ["apple",...]', col:"#00ff88", w:160, h:26, fontSize:10, bold:false },
-    { x:300, y:220, label:"fruit changes each\niteration", col:"#a78bfa", w:160, h:38, fontSize:10, bold:false },
-    { x:500, y:220, label:"print(fruit)\nruns every time", col:"#ffbf00", w:140, h:38, fontSize:10, bold:false },
-    // Level 3 - how it works
-    { x:100, y:310, label:"Any iterable:\nlist, string, range...", col:"#00ff8880", w:150, h:38, fontSize:10, bold:false },
-    { x:300, y:310, label:"Auto-assigned by\nPython each cycle", col:"#a78bfa80", w:160, h:38, fontSize:10, bold:false },
-    { x:500, y:310, label:"Must be indented\n(4 spaces)", col:"#ffbf0080", w:140, h:38, fontSize:10, bold:false },
-  ];
-  // Edges with labels
-  const edges = [
-    { from:0, to:1, label:"iterates over" },
-    { from:0, to:2, label:"assigns to" },
-    { from:0, to:3, label:"executes" },
-    { from:1, to:4, label:"" },
-    { from:2, to:5, label:"" },
-    { from:3, to:6, label:"" },
-    { from:4, to:7, label:"" },
-    { from:5, to:8, label:"" },
-    { from:6, to:9, label:"" },
-  ];
-
-  return(
-    <svg viewBox={`0 0 ${w} ${h}`} style={{width:"100%",maxWidth:580,display:"block",margin:"0 auto"}}>
-      <defs>
-        <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#334"/>
-        </marker>
-      </defs>
-      {/* Edges */}
-      {edges.map((e,i) => {
-        const f = nodes[e.from], t = nodes[e.to];
-        const fy = f.y + f.h/2, ty = t.y - t.h/2;
-        const mx = (f.x + t.x)/2, my = (fy + ty)/2;
-        return(
-          <g key={i}>
-            <line x1={f.x} y1={fy} x2={t.x} y2={ty} stroke="#1a2a3a" strokeWidth={1.5} markerEnd="url(#arrowhead)"/>
-            {e.label && <text x={mx + (f.x < t.x ? 8 : f.x > t.x ? -8 : 0)} y={my} textAnchor="middle" fill="#3a4a5a" fontSize={9} fontFamily="'DM Sans',sans-serif" fontStyle="italic">{e.label}</text>}
-          </g>
-        );
-      })}
-      {/* Nodes */}
-      {nodes.map((n,i) => {
-        const lines = n.label.split("\n");
-        return(
-          <g key={i}>
-            <rect x={n.x - n.w/2} y={n.y - n.h/2} width={n.w} height={n.h} rx={8}
-              fill={`${n.col}10`} stroke={n.col} strokeWidth={i===0?2:1}/>
-            {lines.map((line,li) => (
-              <text key={li} x={n.x} y={n.y + (li - (lines.length-1)/2) * 13}
-                textAnchor="middle" dominantBaseline="central"
-                fill={n.col} fontSize={n.fontSize} fontWeight={n.bold?700:400}
-                fontFamily={i===0||i>=4?"'JetBrains Mono',monospace":"'DM Sans',sans-serif"}>
-                {line}
-              </text>
-            ))}
-          </g>
-        );
-      })}
-      {/* Reading guide */}
-      <text x={20} y={h-10} fill="#222" fontSize={9} fontFamily="'DM Sans',sans-serif">{"\u2193"} Read top to bottom: syntax {"\u2192"} concepts {"\u2192"} details</text>
-    </svg>
-  );
-}
-
-// NEW: Connection map SVG for Extend phase
-function ConnectionMap(){
-  const nodes = [
-    {x:90, y:70, label:"Variables", col:"#00ff88"},
-    {x:90, y:130, label:"Lists", col:"#00ff88"},
-    {x:90, y:190, label:"Strings", col:"#00ff88"},
-    {x:300, y:130, label:"For Loops", col:"#ffbf00", big:true},
-    {x:510, y:100, label:"While Loops", col:"#a78bfa"},
-    {x:510, y:170, label:"Conditionals", col:"#a78bfa"},
-  ];
-  const edges = [
-    {from:0,to:3},{from:1,to:3},{from:2,to:3},
-    {from:3,to:4},{from:3,to:5},
-  ];
-  return (
-    <svg viewBox="0 0 600 240" style={{width:"100%",maxWidth:560,display:"block",margin:"0 auto"}}>
-      <defs>
-        <marker id="ahCM" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#445"/>
-        </marker>
-      </defs>
-      <text x="90" y="22" textAnchor="middle" fill="#00ff88" fontSize="11" fontWeight="700" fontFamily="'DM Sans',sans-serif">Learned</text>
-      <text x="300" y="22" textAnchor="middle" fill="#ffbf00" fontSize="11" fontWeight="700" fontFamily="'DM Sans',sans-serif">Now</text>
-      <text x="510" y="22" textAnchor="middle" fill="#a78bfa" fontSize="11" fontWeight="700" fontFamily="'DM Sans',sans-serif">Next up</text>
-      {edges.map((e,i)=>{
-        const f=nodes[e.from],t=nodes[e.to];
-        const fw=f.big?55:50, tw=t.big?55:50;
-        return <line key={i} x1={f.x+fw} y1={f.y} x2={t.x-tw} y2={t.y} stroke={`${t.col}50`} strokeWidth="1.5" markerEnd="url(#ahCM)"/>;
-      })}
-      {nodes.map((n,i)=>{
-        const w=n.big?110:100, h=n.big?40:32;
-        return (
-          <g key={i}>
-            <rect x={n.x-w/2} y={n.y-h/2} width={w} height={h} rx="8"
-              fill={`${n.col}${n.big?"20":"10"}`} stroke={n.col} strokeWidth={n.big?2:1}/>
-            <text x={n.x} y={n.y} textAnchor="middle" dominantBaseline="central"
-              fill={n.col} fontSize={n.big?13:11.5} fontWeight={n.big?700:500}
-              fontFamily="'DM Sans',sans-serif">{n.label}</text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-// ★ CUTE Floating AI with animated code-face
-function FloatingAI({variant,profile}){/* NEW: profile prop */
-  const [open,setOpen]=useState(false);
-  const [msgs,setMsgs]=useState([]);
-  const [input,setInput]=useState("");
-  const [loading,setLoading]=useState(false);
-  const scrollRef=useRef(null);
-  const v=VARS[variant];
-
-  useEffect(()=>{scrollRef.current?.scrollTo(0,9999);},[msgs]);
-
-  async function send(){
-    if(!input.trim()||loading)return;
-    const um=input.trim();setInput("");
-    const nm=[...msgs,{role:"user",content:um}];setMsgs(nm);setLoading(true);
-    const profileCtx=buildProfileContext(profile||{});/* NEW: learner profile */
-    const sys=`${profileCtx}\n\nYou are a friendly Python tutor helping an absolute beginner. Current code:\n\n${v.code}\n\nOutput: ${v.out.join("\\n")}\n\nRules: Give clear, helpful explanations with examples. Keep responses concise (3-5 sentences).`;
-    const resp=await askAI(sys,nm.map(m=>({role:m.role,content:m.content})));
-    setMsgs(p=>[...p,{role:"assistant",content:resp}]);setLoading(false);
-  }
-
-  // Static wink face - no rapid blinking
-  const face = "{ > \u203F \u00B0 }";
-  const thinkFace = "{ \u2013 _ \u2013 }";
-
-  return(<>
-    {/* Floating mascot button */}
-    {!open&&<div style={{position:"fixed",bottom:24,right:24,zIndex:1000,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8}}>
-      {/* Speech bubble */}
-      {msgs.length===0&&<div style={{
-        padding:"8px 14px",borderRadius:"12px 12px 4px 12px",
-        background:"linear-gradient(135deg,#0d1a2e,#121830)",
-        border:"1px solid #1a3050",fontSize:11.5,color:"#6b8ab8",
-        boxShadow:"0 4px 20px rgba(0,0,0,0.3)",animation:"fadeUp .6s ease-out",
-        maxWidth:180,lineHeight:1.5,
-      }}>Stuck on something? Tap me! {"\u2728"}</div>}
-      {/* The mascot */}
-      <button onClick={()=>setOpen(true)} style={{
-        width:80,height:52,borderRadius:16,border:"none",cursor:"pointer",
-        background:"linear-gradient(135deg,#0d1a2e,#1a2540)",
-        boxShadow:"0 4px 24px rgba(59,130,246,0.25), 0 0 0 1px rgba(59,130,246,0.15)",
-        display:"flex",alignItems:"center",justifyContent:"center",
-        transition:"all .3s",position:"relative",whiteSpace:"nowrap",
-      }}
-      onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.1)";e.currentTarget.style.boxShadow="0 4px 30px rgba(59,130,246,0.4), 0 0 0 1px rgba(59,130,246,0.3)";}}
-      onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.boxShadow="0 4px 24px rgba(59,130,246,0.25), 0 0 0 1px rgba(59,130,246,0.15)";}}
-      >
-        <span style={{
-          fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:"#3b82f6",fontWeight:700,
-          whiteSpace:"nowrap",
-        }}>{face}</span>
-      </button>
-    </div>}
-
-    {/* Chat Panel */}
-    {open&&<div style={{
-      position:"fixed",bottom:24,right:24,zIndex:1000,
-      width:360,height:440,borderRadius:18,overflow:"hidden",
-      background:"linear-gradient(180deg,#0a0e14,#0c1018)",
-      border:"1px solid #1a2a40",
-      boxShadow:"0 8px 40px rgba(0,0,0,0.5), 0 0 60px rgba(59,130,246,0.08)",
-      display:"flex",flexDirection:"column",animation:"fadeUp .3s ease-out",
-    }}>
-      <div style={{padding:"14px 16px",borderBottom:"1px solid #142030",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:13,color:"#3b82f6",fontWeight:700}}>{face}</span>
-          <div>
-            <div style={{fontSize:13,fontWeight:600,color:"#b0c8e0"}}>AI Tutor</div>
-            <div style={{fontSize:10,color:"#889"}}>Ask anything about the code</div>
-          </div>
-        </div>
-        <button onClick={()=>setOpen(false)} style={{background:"#ffffff06",border:"1px solid #1a2535",borderRadius:8,color:"#99a",cursor:"pointer",fontSize:16,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center"}}>{"\u00D7"}</button>
-      </div>
-      <div ref={scrollRef} style={{flex:1,overflowY:"auto",padding:"14px",display:"flex",flexDirection:"column",gap:10}}>
-        {msgs.length===0&&<div style={{fontSize:12,color:"#b0c0d0",textAlign:"center",marginTop:50,lineHeight:2}}>
-          <span style={{fontSize:28,display:"block",marginBottom:8}}>{"{ \u00B0 _ \u00B0 }"}</span>
-          Hi! Ask me about the code.<br/><span style={{color:"#99aabb"}}>e.g. "What does enumerate do?"</span>
-        </div>}
-        {msgs.map((m,i)=>(
-          <div key={i} style={{alignSelf:m.role==="user"?"flex-end":"flex-start",maxWidth:"85%",padding:"10px 14px",borderRadius:m.role==="user"?"14px 14px 4px 14px":"14px 14px 14px 4px",background:m.role==="user"?"#1a3050":"#111828",border:m.role==="user"?"1px solid #1a4070":"1px solid #1a2535",fontSize:12.5,color:m.role==="user"?"#b0c8e8":"#8899b0",lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.content}</div>
-        ))}
-        {loading&&<div style={{alignSelf:"flex-start",padding:"10px 14px",borderRadius:"14px 14px 14px 4px",background:"#111828",border:"1px solid #1a2535",fontSize:12.5,color:"#99a"}}>
-          <span style={{fontFamily:"'JetBrains Mono',monospace"}}>{thinkFace}</span> thinking<span style={{animation:"blink 1s step-end infinite"}}>...</span>
-        </div>}
-      </div>
-      <div style={{padding:"12px",borderTop:"1px solid #142030",display:"flex",gap:8,flexShrink:0}}>
-        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()}
-          placeholder="Ask a question..."
-          style={{flex:1,padding:"10px 14px",borderRadius:12,background:"#060810",border:"1px solid #1a2535",color:"#e0e0ea",fontSize:12.5,fontFamily:"'DM Sans',sans-serif"}}/>
-        <button disabled={!input.trim()||loading} onClick={send} style={{padding:"10px 16px",borderRadius:12,border:"none",background:!input.trim()||loading?"#1a1a2a":"linear-gradient(135deg,#3b82f6,#2563eb)",color:"#fff",fontSize:13,fontWeight:700,cursor:!input.trim()||loading?"default":"pointer"}}>{"\u2191"}</button>
-      </div>
-    </div>}
-  </>);
-}
-
-// ===== MAIN =====
-export default function App(){
-  const[view,setView]=useState("home");
-  const[step,setStep]=useState(0);
-  const[maxS,setMaxS]=useState(0);
-  const[pred,setPred]=useState(null);
-  const[custom,setCustom]=useState("");
-  const[useCust,setUseCust]=useState(false);
-  const[subm,setSubm]=useState(false);
-  const[oL,setOL]=useState([]);
-  const[oR,setOR]=useState(false);
-  const[showFb,setShowFb]=useState(false);
-  const[aiFb,setAiFb]=useState("");
-  const[aiLd,setAiLd]=useState(false);
-  const[vari,setVari]=useState(0);
-  const[sO,setSO]=useState([]);
-  const[sR,setSR]=useState(false);
-  const[selR,setSelR]=useState(null);
-  const[anS,setAnS]=useState(-1);
-  const[anP,setAnP]=useState(false);
-  const anRef=useRef(null);
-  const[refl,setRefl]=useState("");
-  const[repC,setRepC]=useState(null);
-  const[done,setDone]=useState(false);
-  const[reflFb,setReflFb]=useState("");
-  const[reflLd,setReflLd]=useState(false);
-  const[showSettings,setShowSettings]=useState(false);
-  const[keyInput,setKeyInput]=useState(getApiKey());
-  const[keySaved,setKeySaved]=useState(!!getApiKey());
-
-  // NEW: Orient phase state
-  const[orientStep,setOrientStep]=useState(0);
-  const[orientAnswers,setOrientAnswers]=useState({});
-  const[orientDir,setOrientDir]=useState("next");
-
-  // NEW: Extend phase state
-  const[transferPred,setTransferPred]=useState(null);
-  const[transferCustom,setTransferCustom]=useState("");
-  const[transferUseCust,setTransferUseCust]=useState(false);
-  const[transferSubm,setTransferSubm]=useState(false);
-  const[transferOut,setTransferOut]=useState([]);
-  const[transferRun,setTransferRun]=useState(false);
-  const[journalEntry,setJournalEntry]=useState("");
-
-  function runO(arr,sL,sR,cb){sR(true);sL([]);arr.forEach((l,i)=>{setTimeout(()=>{sL(p=>[...p,l]);if(i===arr.length-1){sR(false);if(cb)setTimeout(cb,500);}},((i+1)*420));});}
-  function go(s){setStep(s);if(s>maxS)setMaxS(s);setSO([]);setSR(false);}
-
-  // NEW: Orient helpers
-  function orientSelect(key, opt, multi){
-    setOrientAnswers(p=>{
-      const cur=p[key]||{selected:multi?[]:null,custom:""};
-      if(multi){
-        const arr=cur.selected||[];
-        const nArr=arr.includes(opt)?arr.filter(x=>x!==opt):[...arr,opt];
-        return {...p,[key]:{...cur,selected:nArr}};
-      }
-      return {...p,[key]:{...cur,selected:opt}};
-    });
-  }
-  function orientSetCustom(key, val){
-    setOrientAnswers(p=>{
-      const cur=p[key]||{selected:null,custom:""};
-      return {...p,[key]:{...cur,custom:val}};
-    });
-  }
-  function orientCanProceed(){
-    const q=ORIENT_Q[orientStep];
-    const ans=orientAnswers[q.key];
-    if(!ans)return false;
-    const sel=ans.selected;
-    const hasSel=q.multi?(sel&&sel.length>0):!!sel;
-    const hasCust=!!(ans.custom&&ans.custom.trim());
-    return hasSel||hasCust;
-  }
-  function orientNext(){
-    if(orientStep<ORIENT_Q.length-1){
-      setOrientDir("next");
-      setOrientStep(p=>p+1);
-    } else {
-      go(1); // NEW: enter predict phase
-    }
-  }
-  function orientPrev(){
-    if(orientStep>0){
-      setOrientDir("prev");
-      setOrientStep(p=>p-1);
-    }
-  }
-
-  useEffect(()=>{
-    if(selR==="trace"||selR==="anim"){setAnS(-1);setAnP(false);let idx=0;anRef.current=setInterval(()=>{setAnS(idx);idx++;if(idx>3)clearInterval(anRef.current);},2200);return()=>clearInterval(anRef.current);}
-  },[selR]);
-  useEffect(()=>{if(anP&&anRef.current)clearInterval(anRef.current);},[anP]);
-  function anPlay(){if(anS>=3){setSelR(null);setTimeout(()=>setSelR(selR),80);return;}setAnP(false);let idx=anS+1;anRef.current=setInterval(()=>{setAnS(idx);idx++;if(idx>3)clearInterval(anRef.current);},2200);}
-  function anStepF(){setAnP(true);if(anS<3)setAnS(p=>p+1);}
-
-  async function analyzeCustom(){setAiLd(true);const profileCtx=buildProfileContext(orientAnswers);/* NEW: prepend learner profile */const sys=`${profileCtx}\n\nYou are a Python tutor for beginners learning for loops. Code:\n\nfruits = ["apple", "banana", "cherry"]\nfor fruit in fruits:\n    print(fruit)\n\nOutput: apple, banana, cherry (each on separate line). Analyze the student's prediction in 3-4 sentences: mental model, validate reasoning, explain divergence, warm correction.`;const r=await askAI(sys,[{role:"user",content:`My prediction: ${custom}`}]);setAiFb(r);setAiLd(false);}
-  async function evalRefl(){setReflLd(true);const profileCtx=buildProfileContext(orientAnswers);/* NEW: prepend learner profile */const sys=`${profileCtx}\n\nEvaluate a beginner's for loop explanation. 3-4 sentences: what's right (specific), what's missing, suggestion, encouragement. Warm and constructive.`;const r=await askAI(sys,[{role:"user",content:`My explanation:\n\n${refl}`}]);setReflFb(r);setReflLd(false);}
-
-  const CSS=`@import url('${FU}');
+/* DEMO ANIMATIONS */
 @keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-@keyframes glow{0%,100%{box-shadow:0 0 15px #00ff8812}50%{box-shadow:0 0 30px #00ff8820}}
+@keyframes glow{0%,100%{box-shadow:0 0 18px rgba(0,232,123,.08)}50%{box-shadow:0 0 34px rgba(0,232,123,.18)}}
 @keyframes orientInNext{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}
 @keyframes orientInPrev{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:translateX(0)}}
-*{box-sizing:border-box;margin:0;padding:0}html,body{background:#08080f}
-textarea:focus,button:focus,input:focus{outline:none}button{font-family:'DM Sans',sans-serif}
-.fade-up{animation:fadeUp .4s ease-out}
-.orient-next{animation:orientInNext .25s ease}
-.orient-prev{animation:orientInPrev .25s ease}
-::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#222;border-radius:3px}
-input::placeholder,textarea::placeholder{color:#3a3a4a}`;
+.fade-up{animation:fadeUp .4s ease-out both}
+.orient-next{animation:orientInNext .28s ease both}
+.orient-prev{animation:orientInPrev .28s ease both}
 
-  // ===== HOME =====
-  if(view==="home")return(
-    <div style={{fontFamily:"'DM Sans',sans-serif",minHeight:"100vh",background:"#08080f",color:"#e0e0ea"}}>
-      <style>{CSS}</style>
-      
-      {showSettings&&<div style={{position:"fixed",inset:0,zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.6)"}}>
-        <div style={{background:"#0d0d16",borderRadius:16,padding:"28px",width:380,border:"1px solid #1a1a2a",boxShadow:"0 8px 40px rgba(0,0,0,0.5)"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <div style={{fontSize:15,fontWeight:700}}>{"⚙️"} Settings</div>
-            <button onClick={()=>setShowSettings(false)} style={{background:"none",border:"none",color:"#888",cursor:"pointer",fontSize:18}}>{"×"}</button>
-          </div>
-          <div style={{fontSize:12,color:"#999",marginBottom:8,lineHeight:1.6}}>Enter your Claude API key to enable AI features. Your key is stored locally in your browser only.</div>
-          <input value={keyInput} onChange={e=>setKeyInput(e.target.value)} type="password"
-            placeholder="sk-ant-api03-..." style={{width:"100%",padding:"10px 12px",borderRadius:8,background:"#08080f",border:"1px solid #1a1a2a",color:"#e0e0ea",fontSize:13,fontFamily:"'JetBrains Mono',monospace",marginBottom:12}}/>
-          <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>{setApiKey(keyInput);setKeySaved(true);setShowSettings(false);}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#00ff88,#00cc88)",color:"#08080f",fontWeight:700,fontSize:13,cursor:"pointer"}}>Save Key</button>
-            {keySaved&&<button onClick={()=>{setApiKey("");setKeyInput("");setKeySaved(false);}} style={{padding:"10px 16px",borderRadius:8,border:"1px solid #ff6b6b30",background:"#ff6b6b08",color:"#ff6b6b",fontSize:12,cursor:"pointer"}}>Clear</button>}
-          </div>
-          {keySaved&&<div style={{marginTop:10,fontSize:11,color:"#00ff88"}}>{"✓"} API key saved</div>}
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:0}10%{opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+.confetti-wrap{position:fixed;inset:0;pointer-events:none;z-index:999;overflow:hidden}
+.confetti-pc{position:absolute;top:-30px;width:10px;height:14px;border-radius:2px;animation:confettiFall linear forwards}
+
+@keyframes completionGlow{0%,100%{box-shadow:0 0 0 1px rgba(0,232,123,.28),0 0 40px rgba(0,232,123,.15)}50%{box-shadow:0 0 0 1px rgba(0,232,123,.5),0 0 80px rgba(0,232,123,.3)}}
+.completion-card{animation:completionGlow 3s ease-in-out infinite,fadeUp .6s ease-out both}
+
+.secure-badge{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:10px;background:rgba(0,232,123,.04);border:1px solid rgba(0,232,123,.2);margin-bottom:14px}
+.secure-badge svg{flex-shrink:0;color:var(--g1);margin-top:1px}
+.secure-badge .st1{font-size:11.5px;font-weight:600;color:var(--g1);margin-bottom:3px;letter-spacing:.02em}
+.secure-badge .st2{font-size:11.5px;color:var(--tx2);line-height:1.55}
+`;
+
+// =============================================================================
+// SHARED LOGO
+// =============================================================================
+export function Logo({ size = 30 }) {
+  const id = `lg-${size}`;
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" style={{ display: "block" }}>
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="64" y2="64">
+          <stop offset="0%" stopColor="#00e87b" />
+          <stop offset="100%" stopColor="#00c4f0" />
+        </linearGradient>
+      </defs>
+      <circle cx="28" cy="28" r="18" stroke={`url(#${id})`} strokeWidth="5" fill="none" strokeDasharray="85 28" strokeDashoffset="-8" strokeLinecap="round" />
+      <circle cx="49" cy="20" r="7" stroke={`url(#${id})`} strokeWidth="3.5" fill="none" opacity="0.85" />
+      <circle cx="44" cy="14" r="2" fill={`url(#${id})`} opacity="0.6" />
+    </svg>
+  );
+}
+
+// =============================================================================
+// LANDING PAGE
+// =============================================================================
+function Landing({ goDemo }) {
+  const [csOpen, setCsOpen] = useState(false);
+  const revealRefs = useRef([]);
+  const tiltRefs = useRef([]);
+  const addRv = el => { if (el && !revealRefs.current.includes(el)) revealRefs.current.push(el); };
+  const addTilt = el => { if (el && !tiltRefs.current.includes(el)) tiltRefs.current.push(el); };
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("vis"); }),
+      { threshold: 0.08 }
+    );
+    revealRefs.current.forEach(el => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const handlers = tiltRefs.current.map(card => {
+      const onMove = e => {
+        const r = card.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width - 0.5;
+        const y = (e.clientY - r.top) / r.height - 0.5;
+        card.style.transform = `perspective(800px) rotateY(${x * 12}deg) rotateX(${-y * 12}deg) scale(1.02)`;
+        card.style.transition = "transform .08s ease";
+      };
+      const onLeave = () => {
+        card.style.transform = "perspective(800px) rotateY(0) rotateX(0) scale(1)";
+        card.style.transition = "transform .4s ease";
+      };
+      card.addEventListener("mousemove", onMove);
+      card.addEventListener("mouseleave", onLeave);
+      return { card, onMove, onLeave };
+    });
+    return () => handlers.forEach(h => {
+      h.card.removeEventListener("mousemove", h.onMove);
+      h.card.removeEventListener("mouseleave", h.onLeave);
+    });
+  }, []);
+
+  useEffect(() => {
+    const onKey = e => { if (e.key === "Escape") setCsOpen(false); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = csOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [csOpen]);
+
+  const scrollTo = id => e => {
+    e.preventDefault();
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const phases = [
+    { n: "01 Orient", h: "We learn about you", p: "Quick intake on your background, style, and comfort level. The AI calibrates the session to how your mind works." },
+    { n: "02 Predict", h: "Commit to a guess", p: "Before any answer shows up, you write what you think will happen. This is where deep learning begins." },
+    { n: "03 Investigate", h: "Test your ideas", p: "Run experiments, change variables, try alternatives. The sandbox is yours. The AI stands by in your preferred mode." },
+    { n: "04 Represent", h: "See it your way", p: "Choose from multiple explanations: analogies, traces, diagrams, comparisons. Find the angle that makes it click." },
+    { n: "05 Reflect", h: "Name what changed", p: "Write what you understand now. The AI asks one follow-up question to sharpen your thinking further." },
+    { n: "06 Extend", h: "Take it somewhere new", p: "Apply the concept in a fresh context. If it transfers, you own it. Your concept map grows with each session." },
+  ];
+
+  const theories = [
+    { n: "Productive Failure", c: "Kapur & Bielaczyc, 2012", d: "Learners who struggle with a problem before receiving instruction develop deeper understanding and stronger transfer than those who receive instruction first." },
+    { n: "Knowledge Integration", c: "Linn et al., 2018", d: "Effective learning environments help students express, distinguish, and integrate their ideas rather than simply replacing wrong ideas with correct ones." },
+    { n: "Self-Regulated Learning", c: "Järvelä et al., 2018", d: "Deep learning requires learners to monitor and regulate their own cognition, motivation, and emotions. Technology can prompt these metacognitive processes." },
+    { n: "Conceptual Change", c: "diSessa, 2022", d: "Learners carry fragmented intuitions (p-prims) that are resources for instruction. Working with these intuitions is more effective than overriding them." },
+    { n: "Multiple Representations", c: "Ainsworth, 2006", d: "Different representations make different aspects of a concept salient. Well-designed combinations support diverse cognitive, social, and affective processes." },
+    { n: "Inquiry + Direct Instruction", c: "de Jong et al., 2023", d: "The strongest learning outcomes come from combining inquiry-based and direct instruction, with the timing adapted to learner characteristics." },
+    { n: "Problem-Based Learning", c: "Hmelo-Silver et al., 2018", d: "Authentic, ill-structured problems activate prior knowledge and prepare learners for new information through the PBL tutorial cycle." },
+    { n: "Adaptive Expertise", c: "Hatano & Oura, 2003", d: "The goal is flexible, innovative competence that transfers across contexts, as opposed to routine procedural efficiency." },
+  ];
+
+  const mq1 = ["Python","Data Structures","Algorithms","Machine Learning","Statistics","Linear Algebra","Organic Chemistry","Neuroscience","Philosophy","Music Theory","Economics","Quantum Physics","Architecture","Game Theory","Genetics","Linguistics","Cryptography","Art History"];
+  const mq2 = ["Thermodynamics","Cognitive Science","Roman History","Topology","Rust","Calculus","Molecular Biology","Jazz Theory","Electromagnetism","Psychology","Blockchain","Astronomy","Nutrition","Ethics","Web Dev","SQL","Probability","Logic"];
+
+  return (
+    <>
+      <nav>
+        <button className="nl" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+          <Logo size={30} /><span>gito</span>
+        </button>
+        <div className="nr">
+          <button className="nav-link" onClick={scrollTo("why")}>Why Cogito</button>
+          <button className="nav-link" onClick={scrollTo("cycle")}>The cycle</button>
+          <button className="nav-link" onClick={scrollTo("session")}>Inside a session</button>
+          <button className="nav-link" onClick={scrollTo("theory")}>The science</button>
+          <button className="nav-link" onClick={scrollTo("audience")}>Who it's for</button>
+          <button className="cta" onClick={goDemo}>Try the demo</button>
         </div>
-      </div>}
-      <div style={{padding:"44px 24px 36px",maxWidth:720,margin:"0 auto"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:28}}>
-          <div style={{display:"flex",alignItems:"center",gap:0}}>
-            <svg width="48" height="48" viewBox="0 0 64 64" fill="none" style={{marginRight:-2}}>
-              <defs><linearGradient id="lgMain" x1="0" y1="0" x2="64" y2="64"><stop offset="0%" stopColor="#00ff88"/><stop offset="100%" stopColor="#00bbff"/></linearGradient></defs>
-              <circle cx="28" cy="28" r="18" stroke="url(#lgMain)" strokeWidth="5" fill="none" strokeDasharray="85 28" strokeDashoffset="-8" strokeLinecap="round"/>
-              <circle cx="49" cy="20" r="7" stroke="url(#lgMain)" strokeWidth="3.5" fill="none" opacity="0.8"/>
-              <circle cx="44" cy="14" r="2" fill="url(#lgMain)" opacity="0.4"/>
-            </svg>
-            <span style={{fontSize:28,fontWeight:700,letterSpacing:"-0.03em",color:"#e0e0ea"}}>gito</span>
-          </div>
-          <div style={{fontSize:11,color:"#999",marginLeft:6}}>I think, therefore I learn</div>
-          <button onClick={()=>setShowSettings(true)} style={{width:32,height:32,borderRadius:8,background:keySaved?"#00ff8808":"#ff6b6b08",border:keySaved?"1px solid #00ff8820":"1px solid #ff6b6b20",color:keySaved?"#00ff88":"#ff6b6b",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}} title="API Key Settings">{"⚙"}</button>
+      </nav>
+
+      <header className="hero" id="top">
+        <div className="hero-orbs"><div className="ho1"></div><div className="ho2"></div></div>
+        <div className="hero-badge"><i></i> Adaptive Learning Environment</div>
+        <h1>I think, therefore<br /><em>I learn.</em></h1>
+        <p className="hero-p">Upload any topic. Cogito builds a personalized session around your thinking. Predict first, explore freely, understand deeply.</p>
+        <div className="hero-btns">
+          <button className="bp" onClick={() => setCsOpen(true)}>Start a session &rarr;</button>
+          <button className="bs2" onClick={scrollTo("cycle")}>See how it works</button>
         </div>
-        <h1 style={{fontSize:28,fontWeight:700,lineHeight:1.3,letterSpacing:"-0.03em",marginBottom:8}}>Python Fundamentals</h1>
-        <p style={{fontSize:14,color:"#999",lineHeight:1.7,maxWidth:540}}>An interactive learning environment grounded in Learning Sciences research.</p>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginTop:22,marginBottom:36}}>
-          {[{i:"\u{1F52E}",l:"Predict first",d:"Your existing intuitions are the starting point for learning"},{i:"\u{1F9E9}",l:"Explore freely",d:"Hands-on experimentation builds flexible understanding"},{i:"\u{1F3A8}",l:"Choose your lens",d:"Multiple representations support diverse thinking styles"},{i:"\u{1F4AD}",l:"Reflect and grow",d:"Self-explanation consolidates understanding"}].map((p,i)=>(
-            <div key={i} style={{padding:"12px 14px",borderRadius:10,background:"#0d0d16",border:"1px solid #181824"}}>
-              <div style={{fontSize:18,marginBottom:5}}>{p.i}</div><div style={{fontSize:12,fontWeight:600,marginBottom:2,color:"#ccc"}}>{p.l}</div><div style={{fontSize:10.5,color:"#777",lineHeight:1.5}}>{p.d}</div>
-            </div>))}
+      </header>
+
+      <div className="mq-w">
+        <div className="mq-label">Any subject. Your pace.</div>
+        <div className="mq mq-a">{[...mq1, ...mq1].map((t, i) => <span key={i}>{t}</span>)}</div>
+        <div className="mq mq-b">{[...mq2, ...mq2].map((t, i) => <span key={i}>{t}</span>)}</div>
+      </div>
+
+      <div className="why-sec rv" ref={addRv} id="why">
+        <div className="why-copy">
+          <div className="sl">Why Cogito</div>
+          <h2 className="st">Learning that works <em>with your brain</em></h2>
+          <p className="sd" style={{ marginBottom: 20 }}>Most tools hand you the answer and move on. Cogito makes you think first. That one difference changes how deeply concepts stick, how flexibly you can apply them, and how much you remember a week later.</p>
         </div>
-        <h2 style={{fontSize:16,fontWeight:700,marginBottom:14}}>Course Curriculum</h2>
-        {CURRIC.map((m,mi)=>(
-          <div key={mi} style={{marginBottom:22}}>
-            <div style={{display:"flex",gap:8,alignItems:"baseline",marginBottom:8}}><span style={{fontSize:13,fontWeight:700}}>{m.mod}</span><span style={{fontSize:11,color:"#777"}}>{m.wk}</span></div>
-            {m.ls.map((l,li)=>{const cur=l.s==="cur",dn=l.s==="done",lk=l.s==="lock";return(
-              <button key={li} onClick={()=>cur&&setView("lesson")} style={{display:"flex",alignItems:"center",gap:12,width:"100%",padding:"11px 14px",borderRadius:9,marginBottom:4,textAlign:"left",background:cur?"#00ff8808":"#0d0d16",border:cur?"1.5px solid #00ff8835":"1px solid #181824",cursor:cur?"pointer":"default",opacity:lk?0.35:1,animation:cur?"glow 3s ease-in-out infinite":"none"}}>
-                <div style={{width:28,height:28,borderRadius:7,flexShrink:0,background:dn?"#00ff8812":"#0d0d16",border:dn?"1.5px solid #00ff8840":cur?"1.5px solid #00ff8830":"1px solid #1a1a2a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:dn||cur?"#00ff88":"#444"}}>{dn?"\u2713":lk?"\u{1F512}":"\u2192"}</div>
-                <div style={{flex:1}}><div style={{fontSize:13,fontWeight:cur?600:500,color:cur?"#e8e8f0":dn?"#a0a0a8":"#777"}}>{l.t}{cur&&<span style={{marginLeft:8,fontSize:9,padding:"2px 7px",borderRadius:20,background:"#00ff8815",color:"#00ff88",fontWeight:700}}>CURRENT</span>}</div><div style={{fontSize:11,color:cur?"#888":dn?"#666":"#555",marginTop:1}}>{l.d}</div></div>
-              </button>);})}
-          </div>))}
-        <div style={{marginTop:16,padding:"14px 16px",borderRadius:10,background:"#0d0d16",border:"1px solid #181824"}}>
-          <div style={{fontSize:12,fontWeight:600,marginBottom:6}}>Design Philosophy</div>
-          <div style={{fontSize:11.5,color:"#888",lineHeight:1.8}}>Each lesson follows <strong style={{color:"#bbb"}}>Predict {"\u2192"} Explore {"\u2192"} Represent {"\u2192"} Reflect</strong>, a four-step cycle grounded in Productive Failure (Kapur & Bielaczyc, 2012), Multiple Representations (Ainsworth, 2006), Self-Regulated Learning (J{"\u00E4"}rvel{"\u00E4"} et al., 2018), and Conceptual Change research (diSessa, 2022).</div>
+        <div className="why-points">
+          <div className="wp"><div className="wp-icon" style={{ background: "rgba(0,232,123,.08)", color: "var(--g1)" }}>&#9672;</div><div><h4>Predict before you peek</h4><p>Committing to a guess before seeing the answer activates your prior knowledge and primes your brain for deeper processing.</p></div></div>
+          <div className="wp"><div className="wp-icon" style={{ background: "rgba(0,196,240,.08)", color: "var(--g2)" }}>&#9881;</div><div><h4>AI that adapts to you</h4><p>The tutor adjusts tone, depth, and pacing based on your profile. Socratic questions for some, direct explanations for others.</p></div></div>
+          <div className="wp"><div className="wp-icon" style={{ background: "rgba(245,200,66,.08)", color: "var(--wm)" }}>&#9733;</div><div><h4>See concepts from every angle</h4><p>Multiple representation styles for every idea. Pick the one that clicks, or try several to build richer mental models.</p></div></div>
+          <div className="wp"><div className="wp-icon" style={{ background: "rgba(167,139,250,.08)", color: "var(--pp)" }}>&#10070;</div><div><h4>Reflection that refines</h4><p>Writing what you learned is powerful. Having an AI that probes the gaps in your explanation makes it transformative.</p></div></div>
         </div>
       </div>
-    </div>
+
+      <section className="lp-section" id="cycle">
+        <div className="sl rv" ref={addRv}>The Learning Cycle</div>
+        <h2 className="st rv" ref={addRv}>Six phases of <em>active thinking</em></h2>
+        <p className="sd rv" ref={addRv}>Every session follows the same cycle. You think first. You explore on your own terms. The AI meets you where you are.</p>
+        <div className="ph-grid">
+          {phases.map((ph, i) => (
+            <div key={i} className={`ph rv ${i % 3 === 1 ? "d1" : i % 3 === 2 ? "d2" : ""}`} ref={addRv}>
+              <div className="ph-n">{ph.n}</div>
+              <h3>{ph.h}</h3>
+              <p>{ph.p}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="lp-section" id="session">
+        <div className="sl rv" ref={addRv}>Inside a Session</div>
+        <h2 className="st rv" ref={addRv}>What it feels like to <em>think with Cogito</em></h2>
+        <p className="sd rv" ref={addRv} style={{ marginBottom: 56 }}>Each phase is designed to feel like a conversation with a sharp study partner who gives the answer at exactly the right moment.</p>
+
+        <div className="feat rv" ref={addRv}>
+          <div><span className="feat-tag ft1">Phase 1 &middot; Orient</span><div className="feat-h">The AI adapts to you before the first question</div><p className="feat-p">Cogito opens with a short intake: your experience level, how you prefer explanations, and what kind of feedback keeps you motivated. Every answer reshapes the AI's tone, pacing, and depth. You can update your profile anytime.</p></div>
+          <div className="feat-vis"><div className="o-pills">{["Socratic questions","Step-by-step examples","Warm encouragement","Absolute beginner","Concise and direct","Metaphors first","Challenge me","Visual learner","I break things to learn"].map((t, i) => <div key={i} className="o-pill">{t}</div>)}</div></div>
+        </div>
+
+        <div className="feat rv" ref={addRv}>
+          <div><span className="feat-tag ft2">Phase 2 &middot; Predict</span><div className="feat-h">The most powerful 30 seconds of the session</div><p className="feat-p">You see a new concept and commit to a guess before any explanation appears. Research shows this single act activates your prior knowledge, surfaces hidden assumptions, and creates a genuine desire to find out. Wrong guesses are often more valuable than right ones.</p></div>
+          <div className="feat-vis"><div className="pr-cards"><div className="pr-c hi"><strong>Your prediction</strong>"I think the reaction will produce CO&#8322; because both inputs contain carbon."</div><div className="pr-c"><strong>Alternative A</strong>"The product will be water only."</div><div className="pr-c"><strong>Alternative B</strong>"Nothing will happen without a catalyst."</div><div className="pr-c"><strong>Write your own</strong>Free-text input for any prediction you have in mind.</div></div></div>
+        </div>
+
+        <div className="feat rv" ref={addRv}>
+          <div><span className="feat-tag ft3">Phase 3 &middot; Investigate</span><div className="feat-h">Your sandbox, your experiments</div><p className="feat-p">Run the original scenario, then modify it. Change a variable, swap an input, test a hypothesis. The AI tutor is always available, responding in the style you chose during Orient. Predict first, then verify.</p></div>
+          <div className="feat-vis"><div className="inv-mock">
+            <div className="inv-row"><div className="inv-lbl">Scenario</div><div className="inv-bar"><div className="inv-btn a">Original</div><div className="inv-btn">Change input</div><div className="inv-btn">Remove step</div><div className="inv-btn">Add variable</div></div></div>
+            <div className="inv-row"><div className="inv-lbl">AI mode</div><div className="inv-bar"><div className="inv-btn a">Socratic</div><div className="inv-btn">Direct</div><div className="inv-btn">Encouraging</div><div className="inv-btn">Challenging</div></div></div>
+            <div style={{ textAlign: "center", fontSize: 11, color: "var(--dm)", marginTop: 6 }}>Modify anything. Run. Compare. Ask the AI.</div>
+          </div></div>
+        </div>
+
+        <div className="feat rv" ref={addRv}>
+          <div><span className="feat-tag ft4">Phase 4 &middot; Represent</span><div className="feat-h">Multiple angles on the same idea</div><p className="feat-p">A trace table clicks for analytical thinkers. An analogy clicks for intuitive ones. A diagram helps spatial minds. Cogito generates multiple representations for every concept and lets you choose the lens that fits.</p></div>
+          <div className="feat-vis"><div className="rp-g"><div className="rp-i"><span className="ri" style={{ color: "var(--g1)" }}>&#9998;</span><span className="rn">Line-by-line</span></div><div className="rp-i"><span className="ri" style={{ color: "var(--g2)" }}>&#9638;</span><span className="rn">Trace table</span></div><div className="rp-i"><span className="ri" style={{ color: "var(--wm)" }}>&#9654;</span><span className="rn">Animation</span></div><div className="rp-i"><span className="ri" style={{ color: "var(--pk)" }}>&#10070;</span><span className="rn">Analogy</span></div><div className="rp-i"><span className="ri" style={{ color: "var(--pp)" }}>&#9733;</span><span className="rn">Concept map</span></div><div className="rp-i"><span className="ri" style={{ color: "#63b3ff" }}>&#8644;</span><span className="rn">Comparison</span></div></div></div>
+        </div>
+
+        <div className="feat rv" ref={addRv}>
+          <div><span className="feat-tag ft5">Phase 5 &middot; Reflect</span><div className="feat-h">Say it in your own words</div><p className="feat-p">Write what you understand now. The AI reads your reflection, spots the gaps, and asks one follow-up question that pushes your explanation further. You refine your own understanding through dialogue.</p></div>
+          <div className="feat-vis"><div className="ref-mock"><div className="ref-box">"Combustion requires both fuel and oxygen. The heat breaks molecular bonds, and the atoms recombine into CO&#8322; and H&#8322;O, releasing energy."</div><div className="ref-ai">Cogito asks: "You mentioned heat breaks bonds. Where does the initial energy come from to start the reaction? And once it starts, why does it keep going?"</div></div></div>
+        </div>
+
+        <div className="feat rv" ref={addRv}>
+          <div><span className="feat-tag ft6">Phase 6 &middot; Extend</span><div className="feat-h">Transfer is the real test</div><p className="feat-p">A new challenge uses the same concept in a different context. If you can apply the idea to something you have never seen before, the understanding is yours. Your growing concept map tracks how ideas connect across sessions.</p></div>
+          <div className="feat-vis"><div className="ext-mock"><div className="ext-nodes"><span className="ext-n done">Atoms</span><span className="ext-arr">&rarr;</span><span className="ext-n done">Bonds</span><span className="ext-arr">&rarr;</span><span className="ext-n now">Reactions</span><span className="ext-arr">&rarr;</span><span className="ext-n next">Equilibrium</span><span className="ext-arr">&rarr;</span><span className="ext-n next">Thermodynamics</span></div><div style={{ fontSize: 11, color: "var(--dm)", marginTop: 14 }}>Your concept map after this session</div></div></div>
+        </div>
+      </section>
+
+      <section className="lp-section" id="ways">
+        <div className="sl rv" ref={addRv}>Get Started</div>
+        <h2 className="st rv" ref={addRv}>Pick a course or <em>bring your own</em></h2>
+        <p className="sd rv" ref={addRv} style={{ marginBottom: 36 }}>Start with a structured lesson path, or upload anything and let Cogito build one for you.</p>
+        <div className="ways">
+          <div className="way rv" ref={el => { addRv(el); addTilt(el); }}><div className="tag">Curated Courses</div><h3>Jump into structured paths</h3><p>Python basics, organic chemistry, music theory, and more. Each course breaks a topic into small lessons built around the six-phase cycle. One concept at a time.</p></div>
+          <div className="way rv d1" ref={el => { addRv(el); addTilt(el); }}><div className="tag">Upload Anything</div><h3>Turn any material into a session</h3><p>Paste a textbook chapter, a Wikipedia article, or your own notes. Cogito reads the content and generates predictions, experiments, and reflections.</p></div>
+        </div>
+      </section>
+
+      <section className="lp-section" id="theory">
+        <div className="sl rv" ref={addRv}>The Science Behind It</div>
+        <h2 className="st rv" ref={addRv}>Grounded in <em>two decades of research</em></h2>
+        <p className="sd rv" ref={addRv} style={{ marginBottom: 36 }}>Every design decision in Cogito traces back to peer-reviewed research in the Learning Sciences. Here are some of the core frameworks.</p>
+        <div className="theory-grid">
+          {theories.map((t, i) => (
+            <div key={i} className={`th-card rv ${i % 2 ? "d1" : ""}`} ref={el => { addRv(el); addTilt(el); }}>
+              <div className="th-name">{t.n}</div>
+              <div className="th-cite">{t.c}</div>
+              <div className="th-desc">{t.d}</div>
+            </div>
+          ))}
+        </div>
+        <div className="th-more rv" ref={addRv}>...and drawing from Constructionism (Papert), Cognitive Apprenticeship (Collins, Brown &amp; Newman), Metacognition (Flavell, Brown), scaffolding research (Kollar et al.), and more.</div>
+      </section>
+
+      <section className="lp-section" id="audience">
+        <div className="sl rv" ref={addRv}>Who It's For</div>
+        <h2 className="st rv" ref={addRv}>For anyone who wants to <em>actually understand</em></h2>
+        <p className="sd rv" ref={addRv} style={{ marginBottom: 36 }}>Getting the answer is easy. Understanding why is the hard part. Cogito is for people who care about the why.</p>
+        <div className="aud-list">
+          <div className="al rv" ref={el => { addRv(el); addTilt(el); }}><div className="al-dot" style={{ background: "var(--g1)" }}></div><div><h3>Students</h3><p>Studying for exams, picking up a new subject, or filling gaps in understanding. Cogito builds knowledge from scratch with patience and structure.</p></div></div>
+          <div className="al rv d1" ref={el => { addRv(el); addTilt(el); }}><div className="al-dot" style={{ background: "var(--g2)" }}></div><div><h3>Self-directed learners</h3><p>Tired of passive tutorials that vanish from memory the next day. Cogito makes you think before you receive, so concepts stick.</p></div></div>
+          <div className="al rv d2" ref={el => { addRv(el); addTilt(el); }}><div className="al-dot" style={{ background: "var(--wm)" }}></div><div><h3>Educators and researchers</h3><p>Exploring how AI can scaffold deeper learning. Cogito is a working prototype grounded in Learning Sciences research and open to feedback.</p></div></div>
+        </div>
+      </section>
+
+      <div className="cta-s" id="start">
+        <h2 className="rv" ref={addRv}>Ready to <em>think?</em></h2>
+        <p className="rv" ref={addRv}>Try a session. Pick a lesson or upload something of your own.</p>
+        <div className="cta-btns rv" ref={addRv}>
+          <button className="bp" onClick={goDemo}>Launch the demo &rarr;</button>
+          <button className="bs2" onClick={scrollTo("cycle")}>Review the cycle</button>
+        </div>
+      </div>
+
+      <footer className="lp-footer"><p>Cogito. Built by Mengchen at Penn GSE.</p></footer>
+
+      <div className={`cs-ov${csOpen ? " on" : ""}`} onClick={e => { if (e.target === e.currentTarget) setCsOpen(false); }}>
+        <div className="cs-m">
+          <button className="cs-x" onClick={() => setCsOpen(false)} aria-label="Close">&times;</button>
+          <div className="cs-tag"><i></i> Coming Soon</div>
+          <h3 className="cs-h">Full sessions<br />are <em>launching soon</em></h3>
+          <p className="cs-p">Personalized intake, your own uploaded materials, progress across sessions. Until then, try the interactive demo to feel the full six-phase cycle.</p>
+          <div className="cs-btns">
+            <button className="bp" onClick={() => { setCsOpen(false); goDemo(); }}>Try the interactive demo &rarr;</button>
+            <button className="bs2" onClick={() => setCsOpen(false)}>Maybe later</button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// =============================================================================
+// ROOT APP WITH HASH-BASED ROUTING
+// =============================================================================
+export default function App() {
+  const [page, setPage] = useState(() =>
+    typeof window !== "undefined" && window.location.hash === "#demo" ? "demo" : "landing"
   );
 
-  // ===== LESSON =====
-  return(
-    <div style={{fontFamily:"'DM Sans',sans-serif",minHeight:"100vh",background:"#08080f",color:"#e0e0ea"}}>
-      <style>{CSS}</style>
-      <div style={{padding:"9px 18px",borderBottom:"1px solid #131320",display:"flex",alignItems:"center",justifyContent:"space-between",background:"#0a0a10"}}>
-        <button onClick={()=>setView("home")} style={{display:"flex",alignItems:"center",gap:7,background:"none",border:"none",color:"#999",cursor:"pointer",fontSize:12}}>
-          <svg width="22" height="16" viewBox="0 0 200 56" fill="none"><defs><linearGradient id="lgSm" x1="0" y1="0" x2="200" y2="56"><stop offset="0%" stopColor="#00ff88"/><stop offset="100%" stopColor="#00bbff"/></linearGradient></defs><circle cx="20" cy="24" r="14" stroke="url(#lgSm)" strokeWidth="4.5" fill="none" strokeDasharray="66 22" strokeDashoffset="-6" strokeLinecap="round"/><circle cx="37" cy="15" r="5" stroke="url(#lgSm)" strokeWidth="3" fill="none" opacity="0.75"/><circle cx="33.5" cy="10.5" r="2" fill="url(#lgSm)" opacity="0.35"/></svg>{"\u2190"} Curriculum
-        </button>
-        <span style={{fontSize:11,color:"#888",fontFamily:"'JetBrains Mono',monospace"}}>Module 2 {"\u00B7"} For Loops</span>
-      </div>
-      <div style={{padding:"10px 18px",display:"flex",gap:4,borderBottom:"1px solid #101018"}}>
-        {STEPS.map((s,i)=>{const m=SM[s],a=i===step,ok=i<=maxS;return(
-          <button key={s} onClick={()=>ok&&go(i)} style={{flex:1,padding:"8px 0",borderRadius:8,border:"none",background:a?`${m.c}0A`:"transparent",borderBottom:a?`2px solid ${m.c}`:"2px solid transparent",color:a?m.c:ok?"#555":"#2a2a35",fontSize:12.5,fontWeight:a?600:400,cursor:ok?"pointer":"default"}}>
-            {m.e} {m.l}{a&&<div style={{fontSize:9,color:`${m.c}70`,marginTop:1}}>{m.th}</div>}
-          </button>);})}
-      </div>
-      <div style={{maxWidth:700,margin:"0 auto",padding:"22px 18px 48px"}}>
+  useEffect(() => {
+    const onHash = () => {
+      setPage(window.location.hash === "#demo" ? "demo" : "landing");
+      window.scrollTo(0, 0);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
-        {/* NEW: ORIENT */}
-        {step===0&&(()=>{
-          const q=ORIENT_Q[orientStep];
-          const ans=orientAnswers[q.key]||{selected:q.multi?[]:null,custom:""};
-          const isLast=orientStep===ORIENT_Q.length-1;
-          return(
-            <div className="fade-up" key="s_orient">
-              <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>{"\u{1F9ED}"} Let me get to know you first</h2>
-              <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:18}}>A quick six-question intake so I can calibrate the lesson to your background and preferred style. Skip the options and type your own answer any time.</p>
-              {/* progress dots */}
-              <div style={{display:"flex",gap:6,marginBottom:18,alignItems:"center"}}>
-                {ORIENT_Q.map((_,i)=>(
-                  <div key={i} style={{
-                    width:i===orientStep?28:8,height:8,borderRadius:4,
-                    background:i<orientStep?"#ff6b9d":i===orientStep?"#ff6b9d":"#1a1a2a",
-                    transition:"all .25s ease",
-                  }}/>
-                ))}
-                <span style={{marginLeft:10,fontSize:11,color:"#777",fontFamily:"'JetBrains Mono',monospace"}}>{orientStep+1} / {ORIENT_Q.length}</span>
-              </div>
-              {/* question card with transition */}
-              <div key={`orientQ-${orientStep}`} className={orientDir==="next"?"orient-next":"orient-prev"}
-                style={{background:"#0b0b14",borderRadius:13,padding:"22px",border:"1px solid #ff6b9d18",marginBottom:16}}>
-                <div style={{fontSize:15,fontWeight:600,color:"#e0e0ea",marginBottom:6,lineHeight:1.5}}>{q.q}</div>
-                {q.sub&&<div style={{fontSize:12,color:"#888",marginBottom:14,lineHeight:1.6}}>{q.sub}</div>}
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:14}}>
-                  {q.opts.map(opt=>{
-                    const sel=q.multi?(ans.selected||[]).includes(opt):ans.selected===opt;
-                    return(
-                      <button key={opt} onClick={()=>orientSelect(q.key,opt,q.multi)} style={{
-                        padding:"11px 13px",borderRadius:9,textAlign:"left",
-                        border:sel?"1.5px solid #ff6b9d":"1.5px solid #1a1a2a",
-                        background:sel?"#ff6b9d0A":"#08080f",
-                        color:sel?"#e8d0e0":"#888",
-                        fontSize:12.5,cursor:"pointer",lineHeight:1.5,
-                      }}>{q.multi&&<span style={{marginRight:6,color:sel?"#ff6b9d":"#444"}}>{sel?"\u25A0":"\u25A1"}</span>}{opt}</button>
-                    );
-                  })}
-                </div>
-                <div style={{padding:"12px 14px",borderRadius:9,border:ans.custom?"1.5px solid #ff6b9d40":"1.5px solid #1a1a2a",background:"#08080f"}}>
-                  <div style={{fontSize:11,color:"#ff6b9d",marginBottom:6,fontWeight:600}}>Other (write your own)</div>
-                  <input value={ans.custom||""} onChange={e=>orientSetCustom(q.key,e.target.value)}
-                    placeholder="In your own words..." style={{
-                      width:"100%",padding:"8px 10px",borderRadius:6,background:"#0b0b14",
-                      border:"1px solid #1a1a2a",color:"#e0e0ea",fontSize:12.5,
-                      fontFamily:"'DM Sans',sans-serif",
-                    }}/>
-                </div>
-              </div>
-              {/* nav buttons */}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <button disabled={orientStep===0} onClick={orientPrev} style={{
-                  padding:"9px 18px",borderRadius:9,border:"1px solid #1a1a2a",
-                  background:"transparent",color:orientStep===0?"#333":"#999",
-                  fontSize:12.5,cursor:orientStep===0?"default":"pointer",
-                }}>{"\u2190 Previous"}</button>
-                <Btn disabled={!orientCanProceed()} bg="linear-gradient(135deg,#ff6b9d,#f5528c)" color="#fff" onClick={orientNext}>
-                  {isLast?"Start learning \u2192":"Next \u2192"}
-                </Btn>
-              </div>
-            </div>
-          );
-        })()}
+  const goDemo = () => { window.location.hash = "demo"; };
+  const goHome = () => { window.location.hash = ""; };
 
-        {/* PREDICT */}
-        {step===1&&<div className="fade-up" key="s0">{/* NEW: step index shifted from 0 to 1 */}
-          <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>What do you think this code will do?</h2>
-          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:18}}>Making a prediction activates your prior knowledge and prepares your mind for deeper understanding (Kapur, 2012).</p>
-          <CodeEl code={'fruits = ["apple", "banana", "cherry"]\nfor fruit in fruits:\n    print(fruit)'} accent="#00ff88"/>
-          <div style={{marginTop:20}}>
-            {!subm?<>
-              <div style={{fontSize:12,fontWeight:600,color:"#00ff88",marginBottom:10}}>Choose your prediction:</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:12}}>
-                {PREDS.map(o=><button key={o.id} onClick={()=>{setPred(o.id);setUseCust(false);}} style={{padding:"12px 13px",borderRadius:9,textAlign:"left",border:pred===o.id&&!useCust?"1.5px solid #00ff88":"1.5px solid #1a1a2a",background:pred===o.id&&!useCust?"#00ff8808":"#0b0b14",color:pred===o.id&&!useCust?"#ccc":"#666",fontSize:12,cursor:"pointer",whiteSpace:"pre-line",fontFamily:"'JetBrains Mono',monospace",lineHeight:1.5}}>{o.t}</button>)}
-              </div>
-              <div style={{padding:"12px 14px",borderRadius:9,marginBottom:14,border:useCust?"1.5px solid #3b82f6":"1.5px solid #1a1a2a",background:useCust?"#3b82f608":"#0b0b14"}}>
-                <div style={{fontSize:12,fontWeight:600,color:useCust?"#3b82f6":"#555",marginBottom:8}}>{"\u{1F4AC}"} I have a different prediction:</div>
-                <input value={custom} onChange={e=>{setCustom(e.target.value);setUseCust(true);setPred(null);}} onFocus={()=>{setUseCust(true);setPred(null);}} placeholder="Type what you think will happen..." style={{width:"100%",padding:"8px 12px",borderRadius:6,background:"#08080f",border:"1px solid #1a1a2a",color:"#e0e0ea",fontSize:13,fontFamily:"'DM Sans',sans-serif"}}/>
-              </div>
-              <Btn disabled={!pred&&!custom.trim()} bg="linear-gradient(135deg,#00ff88,#00cc88)" onClick={()=>{setSubm(true);runO(["apple","banana","cherry"],setOL,setOR,()=>{if(useCust&&custom.trim())analyzeCustom();setShowFb(true);});}}>{"\u25B6"} Submit Prediction & Run</Btn>
-            </>:<>
-              <OutEl lines={oL} running={oR} color="#00ff88"/>
-              {showFb&&!useCust&&pred&&(()=>{const fb=PFB[pred];return(
-                <div className="fade-up" style={{marginTop:14,borderRadius:11,padding:"16px 18px",background:fb.ok?"#00ff8806":"#ffbf0006",border:fb.ok?"1px solid #00ff8820":"1px solid #ffbf0020"}}>
-                  <div style={{fontSize:14,fontWeight:700,marginBottom:6,color:fb.ok?"#00ff88":"#ffbf00"}}>{fb.ok?"\u2728 ":"\u{1F914} "}{fb.ti}</div>
-                  <div style={{fontSize:13,color:"#999",lineHeight:1.8}}>{fb.bd}</div>
-                  {!fb.ok&&<div style={{marginTop:10,padding:"8px 12px",borderRadius:7,background:"#ffffff03",fontSize:11.5,color:"#888",lineHeight:1.6,fontStyle:"italic"}}>Research: wrong predictions lead to better retention (Kapur & Bielaczyc, 2012).</div>}
-                  <Btn onClick={()=>go(2)/* NEW: go(1)→go(2) */} bg="linear-gradient(135deg,#ffbf00,#ff9500)" sx={{marginTop:14}}>Continue {"\u2192"}</Btn>
-                </div>);})()}
-              {showFb&&useCust&&<div className="fade-up" style={{marginTop:14}}>
-                <div style={{background:"#0e1a2e",borderRadius:12,padding:"14px 18px",border:"1px solid #1a3050"}}>
-                  <div style={{fontSize:10,color:"#3b82f6",fontWeight:700,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>{"\u{1F916}"} AI Analysis</div>
-                  {aiLd?<div style={{color:"#999",fontSize:13}}>Analyzing<span style={{animation:"blink 1s step-end infinite"}}>...</span></div>:<div style={{fontSize:13,color:"#b0c8e0",lineHeight:1.8,whiteSpace:"pre-wrap"}}>{aiFb}</div>}
-                </div>
-                {!aiLd&&aiFb&&<Btn onClick={()=>go(2)/* NEW: go(1)→go(2) */} bg="linear-gradient(135deg,#ffbf00,#ff9500)" sx={{marginTop:14}}>Continue {"\u2192"}</Btn>}
-              </div>}
-            </>}
-          </div>
-        </div>}
-
-        {/* STRUGGLE */}
-        {step===2&&<div className="fade-up" key="s1">{/* NEW: step index shifted from 1 to 2 */}
-          <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>Explore: What happens when you change the code?</h2>
-          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:16}}>Experiment freely with variations. When you need guidance, the AI tutor is here to help.</p>
-          <div style={{display:"flex",gap:5,marginBottom:12,flexWrap:"wrap"}}>
-            {VARS.map((v,i)=><button key={v.k} onClick={()=>{setVari(i);setSO([]);setSR(false);}} style={{padding:"6px 13px",borderRadius:7,border:"none",background:vari===i?"#ffbf000A":"#0b0b14",border:vari===i?"1.5px solid #ffbf0038":"1.5px solid #1a1a2a",color:vari===i?"#ffbf00":"#555",fontSize:12.5,fontWeight:vari===i?600:400,cursor:"pointer"}}>{v.l}</button>)}
-          </div>
-          <CodeEl code={VARS[vari].code} accent="#ffbf00"/>
-          <div style={{display:"flex",gap:8,alignItems:"center",marginTop:12,marginBottom:12}}>
-            <Btn disabled={sR} bg="linear-gradient(135deg,#ffbf00,#ff9500)" onClick={()=>runO(VARS[vari].out,setSO,setSR)}>{sR?"Running...":"\u25B6 Run Code"}</Btn>
-            <span style={{fontSize:11,color:"#888"}}>Predict first, then verify</span>
-          </div>
-          <OutEl lines={sO} running={sR} color="#ffbf00"/>
-          <Btn onClick={()=>go(3)/* NEW: go(2)→go(3) */} bg="linear-gradient(135deg,#63b3ff,#3b82f6)" color="#fff" sx={{marginTop:16}}>I've explored enough {"\u2192"}</Btn>
-          <FloatingAI variant={vari} profile={orientAnswers}/>{/* NEW: pass learner profile */}
-        </div>}
-
-        {/* REPRESENT */}
-        {step===3&&<div className="fade-up" key="s2">{/* NEW: step index shifted from 2 to 3 */}
-          <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>Choose how you want to understand this</h2>
-          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:16}}>Choose the representation that resonates with how you think. Different learners benefit from different perspectives (Ainsworth, 2006).</p>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:20}}>
-            {[
-              {k:"annotated",i:"\u{1F4DD}",t:"Line-by-Line",d:"Step-by-step code breakdown"},
-              {k:"trace",i:"\u{1F4CA}",t:"Trace Table",d:"Watch variables change each step"},
-              {k:"anim",i:"\u{1F3AC}",t:"Animation",d:"Visual iteration walkthrough"},
-              {k:"analogy",i:"\u{1F9FA}",t:"Real-Life Analogy",d:"Everyday metaphor"},
-              {k:"mindmap",i:"\u{1F578}",t:"Concept Map",d:"How key ideas connect"},
-              {k:"compare",i:"\u{1F504}",t:"With vs Without",d:"Why loops exist"},
-            ].map(r=>(
-              <button key={r.k} onClick={()=>setSelR(r.k)} style={{padding:"14px 10px",borderRadius:11,textAlign:"left",border:selR===r.k?"1.5px solid #63b3ff":"1.5px solid #1a1a2a",background:selR===r.k?"#63b3ff08":"#0b0b14",cursor:"pointer"}}>
-                <div style={{fontSize:20,marginBottom:5}}>{r.i}</div><div style={{fontSize:12,fontWeight:600,color:selR===r.k?"#e0e0ea":"#999",marginBottom:2}}>{r.t}</div><div style={{fontSize:10.5,color:"#888"}}>{r.d}</div>
-              </button>))}
-          </div>
-
-          {/* LINE-BY-LINE */}
-          {selR==="annotated"&&<div className="fade-up" style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #63b3ff18",marginBottom:16}}>
-            <div style={{fontSize:12,fontWeight:600,color:"#63b3ff",marginBottom:14}}>{"\u{1F4DD}"} Line-by-Line Breakdown</div>
-            {[
-              {c:'fruits = ["apple", "banana", "cherry"]',n:1,t:"Creates a list \u2014 an ordered container with three strings. The name 'fruits' is a label you choose."},
-              {c:"for fruit in fruits:",n:2,t:"Loop declaration: take each element from 'fruits', one at a time, name it 'fruit', then run the indented code below. The colon marks the start of the loop body. The name 'fruit' is your choice \u2014 'for x in fruits:' works identically."},
-              {c:"    print(fruit)",n:3,t:"print() displays the current value of 'fruit'. The 4-space indent is critical \u2014 it tells Python this line is inside the loop. No indent = not part of the loop."},
-            ].map((x,i)=>(
-              <div key={i} style={{marginBottom:16,paddingBottom:16,borderBottom:i<2?"1px solid #141420":"none"}}>
-                <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12.5,color:"#d4d4d4",padding:"8px 12px",background:"#08080f",borderRadius:6,marginBottom:8}}><span style={{color:"#777",marginRight:10}}>{x.n}</span>{x.c}</div>
-                <div style={{fontSize:12.5,color:"#888",lineHeight:1.75,paddingLeft:12,borderLeft:"2px solid #63b3ff28"}}>{x.t}</div>
-              </div>))}
-            <div style={{padding:"10px 14px",borderRadius:8,background:"#63b3ff06",fontSize:12,color:"#999",lineHeight:1.6}}>
-              {"\u{1F4A1}"} <strong style={{color:"#63b3ff"}}>Key:</strong> The for loop repeats a block of code once for each item in a sequence. Stops when the list is exhausted.
-            </div>
-          </div>}
-
-          {/* TRACE TABLE */}
-          {selR==="trace"&&<div className="fade-up" style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #63b3ff18",marginBottom:16}}>
-            <div style={{fontSize:12,fontWeight:600,color:"#63b3ff",marginBottom:14}}>{"\u{1F4CA}"} Variable Trace Table</div>
-            <p style={{fontSize:12,color:"#888",marginBottom:14,lineHeight:1.6}}>Track how each variable changes at every step of execution.</p>
-            <TraceTable step={anS}/>
-            <div style={{display:"flex",gap:8,marginTop:14,alignItems:"center"}}>
-              <button onClick={()=>anP?anPlay():setAnP(true)} style={{padding:"5px 12px",borderRadius:6,background:"#63b3ff0D",border:"1px solid #63b3ff20",color:"#63b3ff",fontSize:11,cursor:"pointer"}}>{anP?"\u25B6 Play":"\u23F8 Pause"}</button>
-              <button onClick={anStepF} style={{padding:"5px 12px",borderRadius:6,background:"#63b3ff0D",border:"1px solid #63b3ff20",color:"#63b3ff",fontSize:11,cursor:"pointer"}}>{"\u23E9"} Next</button>
-              <button onClick={()=>{setSelR(null);setTimeout(()=>setSelR("trace"),80);}} style={{padding:"5px 12px",borderRadius:6,background:"#63b3ff0D",border:"1px solid #63b3ff20",color:"#63b3ff",fontSize:11,cursor:"pointer"}}>{"\u{1F504}"}</button>
-              <span style={{fontSize:11,color:"#888"}}>{anS===-1?"Ready":anS<3?`Iteration ${anS+1}/3`:"Done"}</span>
-            </div>
-          </div>}
-
-          {/* ANIMATION */}
-          {selR==="anim"&&<div className="fade-up" style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #63b3ff18",marginBottom:16}}>
-            <div style={{fontSize:12,fontWeight:600,color:"#63b3ff",marginBottom:14}}>{"\u{1F3AC}"} Step-by-Step Animation</div>
-            <div style={{display:"flex",gap:24,flexWrap:"wrap",alignItems:"flex-start"}}>
-              <div>
-                <div style={{fontSize:10,color:"#888",marginBottom:8,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em"}}>fruits</div>
-                <div style={{display:"flex",gap:5}}>
-                  {["apple","banana","cherry"].map((f,i)=>(
-                    <div key={f} style={{padding:"10px 14px",borderRadius:7,textAlign:"center",background:anS===i?"#63b3ff10":"#08080f",border:anS===i?"1.5px solid #63b3ff":i<anS?"1.5px solid #00ff8830":"1.5px solid #1a1a2a",color:anS===i?"#63b3ff":i<anS?"#00ff8880":"#444",fontFamily:"'JetBrains Mono',monospace",fontSize:12.5,transition:"all .4s",transform:anS===i?"scale(1.06)":"scale(1)"}}>
-                      "{f}"{anS===i&&<div style={{fontSize:9,color:"#63b3ff",marginTop:3}}>{"\u2191"} fruit</div>}
-                    </div>))}
-                </div>
-              </div>
-              <div>
-                <div style={{fontSize:10,color:"#888",marginBottom:8,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em"}}>output</div>
-                <div style={{background:"#08080f",borderRadius:7,padding:"10px 14px",minWidth:100,minHeight:60,fontFamily:"'JetBrains Mono',monospace",fontSize:12.5,lineHeight:2}}>
-                  {["apple","banana","cherry"].filter((_,i)=>i<=anS&&anS<4).map((f,i)=><div key={i} style={{color:"#63b3ff"}}>{f}</div>)}
-                </div>
-              </div>
-            </div>
-            <div style={{marginTop:12,fontSize:12,color:"#999",lineHeight:1.6,minHeight:18}}>
-              {anS===-1&&"Starting..."}{anS===0&&'Iteration 1: fruit = "apple" \u2192 print(fruit)'}{anS===1&&'Iteration 2: fruit = "banana" \u2192 print(fruit)'}{anS===2&&'Iteration 3: fruit = "cherry" \u2192 print(fruit)'}{anS>=3&&"\u2705 Loop complete \u2014 3 iterations."}
-            </div>
-            <div style={{display:"flex",gap:8,marginTop:10}}>
-              <button onClick={()=>anP?anPlay():setAnP(true)} style={{padding:"5px 12px",borderRadius:6,background:"#63b3ff0D",border:"1px solid #63b3ff20",color:"#63b3ff",fontSize:11,cursor:"pointer"}}>{anP?"\u25B6 Play":"\u23F8 Pause"}</button>
-              <button onClick={anStepF} style={{padding:"5px 12px",borderRadius:6,background:"#63b3ff0D",border:"1px solid #63b3ff20",color:"#63b3ff",fontSize:11,cursor:"pointer"}}>{"\u23E9"} Step</button>
-              <button onClick={()=>{setSelR(null);setTimeout(()=>setSelR("anim"),80);}} style={{padding:"5px 12px",borderRadius:6,background:"#63b3ff0D",border:"1px solid #63b3ff20",color:"#63b3ff",fontSize:11,cursor:"pointer"}}>{"\u{1F504}"}</button>
-            </div>
-          </div>}
-
-          {/* ANALOGY */}
-          {selR==="analogy"&&<div className="fade-up" style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #63b3ff18",marginBottom:16}}>
-            <div style={{fontSize:12,fontWeight:600,color:"#63b3ff",marginBottom:12}}>{"\u{1F9FA}"} The Grocery Bag</div>
-            <div style={{fontSize:13,color:"#bbb",lineHeight:1.9}}>
-              <p>Imagine a bag: {"\u{1F34E}"} apple, {"\u{1F34C}"} banana, {"\u{1F352}"} cherry.</p>
-              <p style={{marginTop:10}}><code style={{color:"#63b3ff",background:"#63b3ff0D",padding:"2px 7px",borderRadius:4,fontFamily:"'JetBrains Mono',monospace",fontSize:12}}>for fruit in fruits</code> = <strong style={{color:"#e0e0ea"}}>pull out one item at a time</strong>:</p>
-              <div style={{background:"#08080f",borderRadius:9,padding:"14px 16px",margin:"10px 0",lineHeight:2.2,fontSize:12.5}}>
-                {"\u{1F91E}"} Pull {"\u{1F34E}"} "apple" {"\u2192"} say aloud (print)<br/>{"\u{1F91E}"} Pull {"\u{1F34C}"} "banana" {"\u2192"} say aloud<br/>{"\u{1F91E}"} Pull {"\u{1F352}"} "cherry" {"\u2192"} say aloud<br/>{"\u{1F91E}"} Empty {"\u2192"} done!
-              </div>
-              <p style={{color:"#777",marginTop:8}}><strong style={{color:"#ffbf00"}}>Key:</strong> The loop processes each item in order, one by one.</p>
-            </div>
-          </div>}
-
-          {/* ★ IMPROVED MIND MAP */}
-          {selR==="mindmap"&&<div className="fade-up" style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #63b3ff18",marginBottom:16}}>
-            <div style={{fontSize:12,fontWeight:600,color:"#63b3ff",marginBottom:6}}>{"\u{1F578}"} Concept Map</div>
-            <p style={{fontSize:11.5,color:"#888",marginBottom:14,lineHeight:1.5}}>Read top to bottom: the syntax at the top breaks down into three core concepts, each with deeper details below.</p>
-            <MindMap/>
-          </div>}
-
-          {/* COMPARE */}
-          {selR==="compare"&&<div className="fade-up" style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #63b3ff18",marginBottom:16}}>
-            <div style={{fontSize:12,fontWeight:600,color:"#63b3ff",marginBottom:12}}>{"\u{1F504}"} With vs Without</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div><div style={{fontSize:11,fontWeight:600,color:"#ff6b6b",marginBottom:5}}>{"\u274C"} Manual</div><pre style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,lineHeight:1.9,background:"#08080f",padding:"12px",borderRadius:7,color:"#d4d4d4",border:"1px solid #ff6b6b12",whiteSpace:"pre-wrap"}}>{'fruits = ["apple","banana","cherry"]\nprint(fruits[0])\nprint(fruits[1])\nprint(fruits[2])\n# 1000 items = 1000 lines...'}</pre></div>
-              <div><div style={{fontSize:11,fontWeight:600,color:"#00ff88",marginBottom:5}}>{"\u2705"} With loop</div><pre style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,lineHeight:1.9,background:"#08080f",padding:"12px",borderRadius:7,color:"#d4d4d4",border:"1px solid #00ff8812",whiteSpace:"pre-wrap"}}>{'fruits = ["apple","banana","cherry"]\nfor fruit in fruits:\n    print(fruit)\n# Works for any size!'}</pre></div>
-            </div>
-          </div>}
-
-          {/* VIDEO EMBED AREA */}
-          <div style={{marginTop:8,marginBottom:16,borderRadius:12,overflow:"hidden",border:"1px solid #1a2a3a"}}>
-            <div style={{background:"#0b0b14",padding:"20px",textAlign:"center"}}>
-              <video src="./video.mp4" controls playsInline style={{width:"100%",borderRadius:8,maxHeight:340,background:"#08080f"}}
-                onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}/>
-              <div style={{display:"none",width:"100%",height:180,background:"#08080f",borderRadius:8,alignItems:"center",justifyContent:"center",border:"1px dashed #1a2a3a",flexDirection:"column",gap:8}}>
-                <span style={{color:"#888",fontSize:36}}>{"\u25B6"}</span>
-                <span style={{color:"#666",fontSize:11}}>Place video.mp4 in the public folder</span>
-              </div>
-            </div>
-          </div>
-
-          {selR&&<Btn onClick={()=>go(4)/* NEW: go(3)→go(4) */} bg="linear-gradient(135deg,#a78bfa,#8b5cf6)" color="#fff" sx={{marginTop:4}}>Continue {"\u2192"} Reflect</Btn>}
-        </div>}
-
-        {/* REFLECT */}
-        {step===4&&<div className="fade-up" key="s3">{/* NEW: step index shifted from 3 to 4 */}
-          <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>Reflect: What just happened in your head?</h2>
-          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:18}}>Articulating your understanding in your own words deepens learning through self-explanation (Chi et al., 1989). After you write, the AI provides personalized feedback.</p>
-          <div style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #a78bfa18",marginBottom:16}}>
-            <div style={{marginBottom:18}}>
-              <div style={{fontSize:12,fontWeight:600,color:"#a78bfa",marginBottom:6}}>1. Prediction vs. Reality</div>
-              <div style={{padding:"10px 12px",borderRadius:7,background:"#ffffff03",border:"1px solid #1a1a2a",fontSize:12.5,color:"#777"}}>
-                {pred==="correct"&&"\u2705 Predicted correctly."}{pred==="list"&&"Predicted the whole list \u2014 actually printed each item."}{pred==="last"&&"Predicted only last \u2014 loop ran for all."}{pred==="error"&&"Predicted error \u2014 'for' auto-defines."}{useCust&&`Your prediction: "${custom}"`}{!pred&&!useCust&&"(none)"}
-              </div>
-            </div>
-            <div style={{marginBottom:18}}>
-              <div style={{fontSize:12,fontWeight:600,color:"#a78bfa",marginBottom:6}}>2. Explain: What does a for loop do?</div>
-              <textarea value={refl} onChange={e=>{setRefl(e.target.value);setReflFb("");}} placeholder="Explain to a friend who's never coded..." style={{width:"100%",minHeight:80,padding:"10px 12px",borderRadius:7,background:"#08080f",border:"1.5px solid #a78bfa18",color:"#e0e0ea",fontSize:12.5,lineHeight:1.7,resize:"vertical",fontFamily:"'DM Sans',sans-serif"}}/>
-              {refl.trim()&&!reflFb&&!reflLd&&<button onClick={evalRefl} style={{marginTop:8,padding:"7px 16px",borderRadius:7,background:"#a78bfa10",border:"1px solid #a78bfa25",color:"#a78bfa",fontSize:12,cursor:"pointer",fontWeight:600}}>{"\u{1F916}"} Get AI Feedback</button>}
-              {(reflLd||reflFb)&&<div className="fade-up" style={{marginTop:10,background:"#0e1a2e",borderRadius:10,padding:"14px 16px",border:"1px solid #1a3050"}}>
-                <div style={{fontSize:10,color:"#a78bfa",fontWeight:700,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>{"\u{1F916}"} Feedback</div>
-                {reflLd?<div style={{color:"#999",fontSize:13}}>Evaluating<span style={{animation:"blink 1s step-end infinite"}}>...</span></div>:<div style={{fontSize:13,color:"#b0c8e0",lineHeight:1.8,whiteSpace:"pre-wrap"}}>{reflFb}</div>}
-              </div>}
-            </div>
-            <div>
-              <div style={{fontSize:12,fontWeight:600,color:"#a78bfa",marginBottom:6}}>3. Which representation helped you most?</div>
-              <div style={{fontSize:11,color:"#889",marginBottom:8,lineHeight:1.5}}>Noticing how you learn best is a metacognitive skill that improves over time.</div>
-              <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                {[{k:"annotated",l:"\u{1F4DD} Line-by-line"},{k:"trace",l:"\u{1F4CA} Trace"},{k:"anim",l:"\u{1F3AC} Animation"},{k:"analogy",l:"\u{1F9FA} Analogy"},{k:"mindmap",l:"\u{1F578} Mind Map"},{k:"compare",l:"\u{1F504} Compare"}].map(r=><button key={r.k} onClick={()=>setRepC(r.k)} style={{padding:"6px 12px",borderRadius:7,border:repC===r.k?"1.5px solid #a78bfa":"1.5px solid #1a1a2a",background:repC===r.k?"#a78bfa0A":"#0b0b14",color:repC===r.k?"#a78bfa":"#999",fontSize:11.5,cursor:"pointer"}}>{r.l}</button>)}
-              </div>
-            </div>
-          </div>
-          {!done?<Btn disabled={!refl.trim()} bg="linear-gradient(135deg,#00ff88,#00bbff)" onClick={()=>go(5)/* NEW: setDone(true)→go(5) to enter Extend */}>Complete Lesson {"\u2728"}</Btn>
-          :<div className="fade-up" style={{background:"#00ff8806",border:"1px solid #00ff8820",borderRadius:13,padding:"24px",textAlign:"center"}}>
-            <div style={{fontSize:32,marginBottom:8}}>{"\u{1F389}"}</div>
-            <div style={{fontSize:18,fontWeight:700,marginBottom:6}}>Lesson Complete!</div>
-            <div style={{fontSize:12.5,color:"#777",lineHeight:1.8,maxWidth:440,margin:"0 auto"}}>You learned <strong style={{color:"#e0e0ea"}}>for loops</strong> through Predict {"\u2192"} Explore {"\u2192"} Represent {"\u2192"} Reflect.</div>
-            <div style={{marginTop:14,display:"flex",justifyContent:"center",gap:12}}>
-              <button onClick={()=>setView("home")} style={{padding:"7px 16px",borderRadius:7,background:"#ffffff05",border:"1px solid #1a1a2a",color:"#777",cursor:"pointer",fontSize:12}}>{"\u2190"} Curriculum</button>
-              <button style={{padding:"7px 16px",borderRadius:7,background:"#63b3ff0D",border:"1px solid #63b3ff20",color:"#63b3ff",cursor:"pointer",fontSize:12}}>Next: While Loops {"\u2192"}</button>
-            </div>
-          </div>}
-        </div>}
-
-        {/* NEW: EXTEND */}
-        {step===5&&<div className="fade-up" key="s_extend">
-          <h2 style={{fontSize:18,fontWeight:700,marginBottom:5}}>{"\u{1F680}"} Extend: take what you learned somewhere new</h2>
-          <p style={{fontSize:13,color:"#999",lineHeight:1.7,marginBottom:18}}>Transfer happens when you can apply a mental model to code you've never seen. Let's test it, then see where this lesson sits in the bigger map.</p>
-
-          {/* (a) Transfer prediction */}
-          <div style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #00d9ff18",marginBottom:18}}>
-            <div style={{fontSize:12,fontWeight:600,color:"#00d9ff",marginBottom:12}}>{"\u{1F9EA}"} Transfer challenge: what will this new code print?</div>
-            <CodeEl code={"for i in range(5):\n    print(i * 2)"} accent="#00d9ff"/>
-            {!transferSubm?<div style={{marginTop:14}}>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:10}}>
-                {TRANSFER_PREDS.map(o=>(
-                  <button key={o.id} onClick={()=>{setTransferPred(o.id);setTransferUseCust(false);}} style={{
-                    padding:"11px 13px",borderRadius:9,textAlign:"left",
-                    border:transferPred===o.id&&!transferUseCust?"1.5px solid #00d9ff":"1.5px solid #1a1a2a",
-                    background:transferPred===o.id&&!transferUseCust?"#00d9ff0A":"#08080f",
-                    color:transferPred===o.id&&!transferUseCust?"#ccc":"#666",
-                    fontSize:12.5,cursor:"pointer",fontFamily:"'JetBrains Mono',monospace",
-                  }}>{o.t}</button>
-                ))}
-              </div>
-              <div style={{padding:"12px 14px",borderRadius:9,marginBottom:12,border:transferUseCust?"1.5px solid #00d9ff":"1.5px solid #1a1a2a",background:transferUseCust?"#00d9ff08":"#08080f"}}>
-                <div style={{fontSize:11,color:transferUseCust?"#00d9ff":"#555",marginBottom:6,fontWeight:600}}>{"\u{1F4AC}"} Or write your own prediction:</div>
-                <input value={transferCustom} onChange={e=>{setTransferCustom(e.target.value);setTransferUseCust(true);setTransferPred(null);}}
-                  onFocus={()=>{setTransferUseCust(true);setTransferPred(null);}}
-                  placeholder="What do you think will print?" style={{
-                    width:"100%",padding:"8px 10px",borderRadius:6,background:"#0b0b14",
-                    border:"1px solid #1a1a2a",color:"#e0e0ea",fontSize:12.5,fontFamily:"'DM Sans',sans-serif",
-                  }}/>
-              </div>
-              <Btn disabled={!transferPred&&!transferCustom.trim()} bg="linear-gradient(135deg,#00d9ff,#0099cc)" color="#fff"
-                onClick={()=>{setTransferSubm(true);runO(TRANSFER_OUT,setTransferOut,setTransferRun);}}>
-                {"\u25B6"} Submit & Run
-              </Btn>
-            </div>:<div style={{marginTop:14}}>
-              <OutEl lines={transferOut} running={transferRun} color="#00d9ff"/>
-              {!transferRun&&transferOut.length===TRANSFER_OUT.length&&<div className="fade-up" style={{marginTop:12,borderRadius:11,padding:"14px 16px",background:transferUseCust?"#00d9ff06":(TRANSFER_FB[transferPred]?.ok?"#00ff8806":"#ffbf0006"),border:transferUseCust?"1px solid #00d9ff20":(TRANSFER_FB[transferPred]?.ok?"1px solid #00ff8820":"1px solid #ffbf0020")}}>
-                {transferUseCust?<>
-                  <div style={{fontSize:13,fontWeight:700,marginBottom:5,color:"#00d9ff"}}>{"\u{1F4CA}"} Actual output: 0, 2, 4, 6, 8</div>
-                  <div style={{fontSize:12.5,color:"#999",lineHeight:1.7}}>You wrote: "{transferCustom}". The loop iterates over range(5) \u2014 which gives 0 through 4 \u2014 and prints each value times 2. Same model as the fruits loop, just with a numeric iterable instead of a list.</div>
-                </>:<>
-                  <div style={{fontSize:13,fontWeight:700,marginBottom:5,color:TRANSFER_FB[transferPred]?.ok?"#00ff88":"#ffbf00"}}>{TRANSFER_FB[transferPred]?.ok?"\u2728 ":"\u{1F914} "}{TRANSFER_FB[transferPred]?.ti}</div>
-                  <div style={{fontSize:12.5,color:"#999",lineHeight:1.7}}>{TRANSFER_FB[transferPred]?.bd}</div>
-                </>}
-              </div>}
-            </div>}
-          </div>
-
-          {/* (b) Connection map */}
-          <div style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #00d9ff18",marginBottom:18}}>
-            <div style={{fontSize:12,fontWeight:600,color:"#00d9ff",marginBottom:6}}>{"\u{1F517}"} Where this lesson fits</div>
-            <p style={{fontSize:11.5,color:"#888",marginBottom:14,lineHeight:1.5}}>On the left is what you've already built up. On the right is where for loops take you next.</p>
-            <ConnectionMap/>
-          </div>
-
-          {/* (c) Journal */}
-          <div style={{background:"#0b0b14",borderRadius:13,padding:"20px",border:"1px solid #00d9ff18",marginBottom:18}}>
-            <div style={{fontSize:12,fontWeight:600,color:"#00d9ff",marginBottom:6}}>{"\u{1F4D3}"} Learning journal (optional)</div>
-            <p style={{fontSize:11.5,color:"#888",marginBottom:10,lineHeight:1.5}}>Leave blank if nothing comes to mind. This is just a scratchpad for you.</p>
-            <textarea value={journalEntry} onChange={e=>setJournalEntry(e.target.value)}
-              placeholder="Questions you still want to explore, connections you noticed, things you want to revisit..."
-              style={{
-                width:"100%",minHeight:90,padding:"10px 12px",borderRadius:7,
-                background:"#08080f",border:"1.5px solid #00d9ff18",color:"#e0e0ea",
-                fontSize:12.5,lineHeight:1.7,resize:"vertical",fontFamily:"'DM Sans',sans-serif",
-              }}/>
-          </div>
-
-          {!done?<Btn bg="linear-gradient(135deg,#00d9ff,#00bbff)" color="#fff" onClick={()=>setDone(true)}>
-            Complete this lesson {"\u{1F389}"}
-          </Btn>:<div className="fade-up" style={{background:"#00ff8806",border:"1px solid #00ff8820",borderRadius:13,padding:"24px",textAlign:"center"}}>
-            <div style={{fontSize:32,marginBottom:8}}>{"\u{1F389}"}</div>
-            <div style={{fontSize:18,fontWeight:700,marginBottom:6}}>Lesson Complete!</div>
-            <div style={{fontSize:12.5,color:"#777",lineHeight:1.8,maxWidth:440,margin:"0 auto"}}>You learned <strong style={{color:"#e0e0ea"}}>for loops</strong> through Predict {"\u2192"} Explore {"\u2192"} Represent {"\u2192"} Reflect.</div>
-            <div style={{marginTop:14,display:"flex",justifyContent:"center",gap:12}}>
-              <button onClick={()=>setView("home")} style={{padding:"7px 16px",borderRadius:7,background:"#ffffff05",border:"1px solid #1a1a2a",color:"#777",cursor:"pointer",fontSize:12}}>{"\u2190"} Curriculum</button>
-              <button style={{padding:"7px 16px",borderRadius:7,background:"#63b3ff0D",border:"1px solid #63b3ff20",color:"#63b3ff",cursor:"pointer",fontSize:12}}>Next: While Loops {"\u2192"}</button>
-            </div>
-          </div>}
-        </div>}
-      </div>
-    </div>
+  return (
+    <>
+      <style>{GLOBAL_CSS}</style>
+      {page === "demo" ? <Demo goHome={goHome} /> : <Landing goDemo={goDemo} />}
+    </>
   );
 }
